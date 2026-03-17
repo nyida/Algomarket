@@ -3,7 +3,6 @@ import { Source_Serif_4, Source_Sans_3 } from 'next/font/google';
 import 'katex/dist/katex.min.css';
 import './globals.css';
 import { Nav } from '@/components/Nav';
-import { Footer } from '@/components/Footer';
 
 const sourceSerif = Source_Serif_4({
   subsets: ['latin'],
@@ -30,11 +29,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${sourceSerif.variable} ${sourceSans.variable}`}>
-      <body className="min-h-screen flex flex-col font-sans antialiased text-stone-900 bg-[#fafaf9]">
+      <body className="min-h-screen flex flex-col font-sans antialiased" style={{ color: 'var(--text-primary)', background: 'var(--bg-app)' }}>
         <Nav />
-        <main className="flex-1 container mx-auto px-4 pt-4 pb-0 max-w-6xl overflow-y-auto overflow-x-hidden scroll-smooth">
+        <main className="flex-1 w-full px-6 overflow-y-auto overflow-x-hidden scroll-smooth">
           {children}
-          <Footer />
         </main>
       </body>
     </html>

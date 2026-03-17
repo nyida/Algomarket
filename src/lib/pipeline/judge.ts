@@ -8,30 +8,41 @@ export async function runJudge(
 ): Promise<JudgeOutput> {
   const contextBlock =
     contextExcerpts.length > 0
-      ? `Context:\n${contextExcerpts.slice(0, 3).map((c, i) => `[${i + 1}] ${c.slice(0, 200)}`).join('\n')}`
-      : 'No context.';
+      ? `Sources:\n${contextExcerpts.slice(0, 5).map((c, i) => `[${i + 1}] ${c.slice(0, 300)}`).join('\n')}`
+      : 'No external sources were retrieved.';
 
   const candidatesBlock = candidates
     .map(
       (c, i) =>
-        `--- ${i + 1} (id: ${c.id}) ---\n${c.data.outputText.slice(0, 600)}\nPass: ${c.verifications.map((v) => v.pass).join(',')}`
+        `=== Candidate ${i + 1} (id: ${c.id}) ===\n${c.data.outputText.slice(0, 1200)}\nVerifications: ${c.verifications.map((v) => `${v.type}:${v.pass ? 'pass' : 'FAIL'}`).join(', ')}`
     )
     .join('\n\n');
 
-  const prompt = `Judge. Pick the best candidate. User request: ${userRequest.slice(0, 300)}
+  const prompt = `You are an expert evaluator selecting the best AI-generated answer.
+
+User question: "${userRequest.slice(0, 400)}"
 
 ${contextBlock}
 
 ${candidatesBlock}
 
-Reply JSON only: {"chosenId": "<id>", "rationale": "one sentence", "finalAnswerEdit": null}`;
+Evaluate each candidate on:
+- Factual accuracy (is every claim grounded in the sources or well-established fact?)
+- Completeness (does it fully answer what was asked?)
+- Source citation (are [N] references used correctly, not invented?)
+- Clarity and structure (well-organized, concise, no padding or repetition?)
+
+Choose the single best candidate. Prefer factual correctness and source grounding above all else.
+
+Reply with JSON only, no extra text:
+{"chosenId": "<id>", "rationale": "one sentence explaining the key reason this candidate is best", "finalAnswerEdit": null}`;
 
   const raw = await llm.complete(
     [
-      { role: 'system', content: 'You output only valid JSON.' },
+      { role: 'system', content: 'You are a strict JSON-only evaluator. Output valid JSON and nothing else.' },
       { role: 'user', content: prompt },
     ],
-    { maxTokens: 256 }
+    { maxTokens: 300 }
   );
   const parsed = parseJudgeResponse(raw, candidates.map((c) => c.id));
   return parsed;

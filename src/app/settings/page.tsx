@@ -19,33 +19,33 @@ export default async function SettingsPage() {
         <section>
           <h2 className="section-label">Account</h2>
           {session ? (
-            <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)] p-4">
-              <p className="text-[var(--text-primary)] font-medium">Logged in</p>
-              <p className="text-slate-700 text-[15px] mt-1">{session.email}</p>
-              <p className="text-slate-500 text-sm mt-1">Your chats and runs are saved to your account.</p>
+            <div className="rounded-none p-4" style={{ border: '1px solid var(--border)', background: 'var(--bg-subtle)' }}>
+              <p className="font-medium" style={{ color: 'var(--text-primary)' }}>Logged in</p>
+              <p className="text-[15px] mt-1" style={{ color: 'var(--text-secondary)' }}>{session.email}</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--text-muted)' }}>Your chats and runs are saved to your account.</p>
               <form action="/api/auth/logout" method="POST" className="mt-3">
-                <button type="submit" className="text-sm text-slate-600 hover:text-slate-800 font-medium">
+                <button type="submit" className="text-sm font-medium transition-opacity hover:opacity-70" style={{ color: 'var(--text-secondary)' }}>
                   Log out
                 </button>
               </form>
             </div>
           ) : (
             <div>
-              <p className="text-slate-600 text-sm mb-3">Log in to save your chats and access them from any device.</p>
+              <p className="text-sm mb-3" style={{ color: 'var(--text-secondary)' }}>Log in to save your chats and access them from any device.</p>
               <AuthForm />
             </div>
           )}
         </section>
         <section>
           <h2 className="section-label">LLM (Ollama)</h2>
-          <p className="text-sm text-slate-600 leading-relaxed">
-            The app uses 5 free Ollama models (llama3.2, qwen2.5:3b, mistral, phi3, gemma2:2b). No API key required. Default is 5 candidates per run. For parallel runs (faster), set <code className="px-1.5 py-0.5 rounded-md bg-slate-100 font-mono text-xs">OLLAMA_URLS</code> in .env to 5 comma-separated URLs (e.g. ports 11434–11438) and run 5 Ollama instances.
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            The app uses 5 free Ollama models (llama3.2, qwen2.5:3b, mistral, phi3, gemma2:2b). No API key required. Default is 5 candidates per run. For parallel runs (faster), set <code className="research-code">OLLAMA_URLS</code> in .env to 5 comma-separated URLs (e.g. ports 11434–11438) and run 5 Ollama instances.
           </p>
         </section>
         <section>
           <h2 className="section-label">Version</h2>
-          <p className="text-sm text-slate-600 leading-relaxed">
-            Set <code className="px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-700 font-mono text-xs">VERSION_TAG</code> in .env to tag runs for regression comparison.
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            Set <code className="research-code">VERSION_TAG</code> in .env to tag runs for regression comparison.
           </p>
         </section>
       </div>

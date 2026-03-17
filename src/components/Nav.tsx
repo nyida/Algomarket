@@ -33,7 +33,7 @@ export function Nav() {
   }, [activeIndex, pathname]);
 
   return (
-    <nav className="sticky top-0 z-10 border-b border-[var(--border)] bg-[var(--bg-surface)]">
+    <nav className="sticky top-0 z-10" style={{ background: 'var(--bg-app)' }}>
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="flex items-center justify-between h-14">
             <Link
@@ -64,7 +64,7 @@ export function Nav() {
                   key={href}
                   href={href}
                   ref={(el) => { linkRefs.current[i] = el; }}
-                  className={`relative z-[1] px-3.5 py-2 rounded-none text-[13px] font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]/30 focus-visible:ring-offset-2 ${
+                  className={`relative z-[1] px-3.5 py-2 rounded-none text-[13px] font-medium transition-colors focus:outline-none focus-visible:outline-none ${
                     isActive ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >

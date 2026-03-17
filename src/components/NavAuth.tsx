@@ -39,7 +39,7 @@ export function NavAuth() {
 
   return (
     <div className="ml-4 flex items-center gap-2">
-      <span className="inline-flex items-center gap-1.5 rounded-md bg-[var(--bg-subtle)] border border-[var(--border)] px-3 py-1.5 text-sm">
+      <span className="inline-flex items-center gap-1.5 rounded-md bg-[var(--bg-subtle)] px-3 py-1.5 text-sm">
         <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" aria-hidden />
         <span className="font-medium text-[var(--text-secondary)]">Signed in</span>
         <span className="text-[var(--text-muted)] max-w-[120px] truncate" title={user.email}>

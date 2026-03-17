@@ -13,6 +13,8 @@ export interface BaselineInput {
   model?: string;
   temperature?: number;
   maxTokens?: number;
+  /** Prior conversation turns to inject before the current user message. */
+  conversationHistory?: { role: string; content: string }[];
   /** Required for deterministic seeding. Used with temperature in canonical seed. */
   baseSeed: string;
   /** If true, we parse ANSWER: from output for eval. */
@@ -39,8 +41,10 @@ export async function runBaseline(input: BaselineInput): Promise<BaselineResult>
   const maxTokens = input.maxTokens ?? DEFAULT_MAX_TOKENS;
   const seed = seed32(`${input.baseSeed}|${stableKeyTemperature(temperature)}|baseline`);
   const systemPrompt = input.systemPrompt ?? 'You are a helpful assistant. Answer clearly and concisely.';
+  const history = (input.conversationHistory ?? []).map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
   const messages = [
     { role: 'system' as const, content: systemPrompt },
+    ...history,
     { role: 'user' as const, content: input.prompt },
   ];
   const start = Date.now();

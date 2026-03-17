@@ -6,8 +6,10 @@ import { verifySafety } from '@/lib/verifiers';
 
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL ?? 'llama3.2';
 const DEFAULT_TEMP = 0.3;
-const DEFAULT_MAX_TOKENS = parseInt(process.env.TURBO_MAX_TOKENS ?? '576', 10) || 576;
-const N_CANDIDATES = Math.min(5, Math.max(1, parseInt(process.env.IMPROVED_N_CANDIDATES ?? process.env.CANDIDATE_COUNT ?? '3', 10)));
+/** Quality path: 1200 tokens covers full articles without excess. Fast/eval path keeps 512. */
+const DEFAULT_MAX_TOKENS = parseInt(process.env.TURBO_MAX_TOKENS ?? '1200', 10) || 1200;
+const FAST_MAX_TOKENS = 512;
+const N_CANDIDATES = Math.min(3, Math.max(1, parseInt(process.env.IMPROVED_N_CANDIDATES ?? process.env.CANDIDATE_COUNT ?? '1', 10)));
 
 export interface ImprovedInput {
   prompt: string;
@@ -16,6 +18,8 @@ export interface ImprovedInput {
   temperature?: number;
   maxTokens?: number;
   nCandidates?: number;
+  /** Prior conversation turns to inject before the current user message. */
+  conversationHistory?: { role: string; content: string }[];
   /** Required for deterministic seeding (no time-based fallback). */
   baseSeed: string;
   evalMode?: boolean;
@@ -103,15 +107,17 @@ function selectBestChatMode(
 export async function runImproved(input: ImprovedInput): Promise<ImprovedResult> {
   const model = input.model ?? DEFAULT_MODEL;
   const temperature = input.temperature ?? DEFAULT_TEMP;
-  const maxTokens = input.maxTokens ?? DEFAULT_MAX_TOKENS;
+  const maxTokens = input.maxTokens ?? (input.evalMode ? FAST_MAX_TOKENS : DEFAULT_MAX_TOKENS);
   const n = input.nCandidates ?? N_CANDIDATES;
   const systemPrompt =
     input.systemPrompt ??
     (input.evalMode
       ? 'You are a helpful assistant. Reply with a single line in the form: ANSWER: <value>'
       : 'You are a helpful assistant. Answer clearly and concisely.');
+  const history = (input.conversationHistory ?? []).map((m) => ({ role: m.role as 'user' | 'assistant', content: m.content }));
   const messages = [
     { role: 'system' as const, content: systemPrompt },
+    ...history,
     { role: 'user' as const, content: input.prompt },
   ];
   const start = Date.now();

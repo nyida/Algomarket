@@ -62,15 +62,15 @@ export default async function RunTracePage({ params }: { params: Promise<{ id: s
 
       <div>
         <h1 className="page-title">Trace</h1>
-        <p className="text-sm text-slate-500 mt-1 font-mono break-all">{id}</p>
+        <p className="text-sm text-[var(--text-muted)] mt-1 font-mono break-all">{id}</p>
       </div>
 
       <section className="card">
         <h2 className="section-label">Input</h2>
-        <div className="text-slate-800 leading-relaxed">
+        <div className="text-[var(--text-primary)] leading-relaxed">
           <MarkdownContent content={run.inputText} />
         </div>
-        <div className="mt-3 flex flex-wrap gap-3 text-xs text-slate-500">
+        <div className="mt-3 flex flex-wrap gap-3 text-xs text-[var(--text-muted)]">
           <span>{run.taskType}</span>
           <span>Version: {run.versionTag ?? '—'}</span>
           {run.latencyMs != null && <span>{run.latencyMs}ms</span>}
@@ -79,20 +79,20 @@ export default async function RunTracePage({ params }: { params: Promise<{ id: s
 
       <section className="card">
         <h2 className="section-label">Sources used for this answer</h2>
-        <p className="text-sm text-slate-600 mb-4">
+        <p className="text-sm text-[var(--text-secondary)] mb-4">
           This is exactly what the model had access to: your documents and web search (if used).
         </p>
 
         {!hasAnySources && (
-          <p className="text-slate-500 text-sm italic">
+          <p className="text-[var(--text-muted)] text-sm italic">
             No retrieval or search was used; the answer was generated from the model&apos;s training only.
           </p>
         )}
 
         {run.attachments.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Your attachments</h3>
-            <ul className="text-sm text-slate-700 space-y-1">
+            <h3 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Your attachments</h3>
+            <ul className="text-sm text-[var(--text-secondary)] space-y-1">
               {run.attachments.map((a) => (
                 <li key={a.id}>{a.originalName}</li>
               ))}
@@ -102,11 +102,11 @@ export default async function RunTracePage({ params }: { params: Promise<{ id: s
 
         {allUrlsWithImages.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Images from your URLs</h3>
+            <h3 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Images from your URLs</h3>
             <div className="space-y-4">
               {allUrlsWithImages.map(([baseUrl, imgs]) => (
                 <div key={baseUrl}>
-                  <p className="text-xs text-slate-500 truncate mb-2" title={baseUrl}>{baseUrl}</p>
+                  <p className="text-xs text-[var(--text-muted)] truncate mb-2" title={baseUrl}>{baseUrl}</p>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {(imgs ?? []).map((imgUrl) => (
                       <a
@@ -114,7 +114,7 @@ export default async function RunTracePage({ params }: { params: Promise<{ id: s
                         href={imgUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group block rounded-lg overflow-hidden border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all duration-200"
+                        className="group block rounded overflow-hidden border border-[var(--border)] hover:border-[var(--accent-muted)] hover:shadow-md transition-all duration-200"
                       >
                         <img
                           src={imgUrl}
@@ -135,14 +135,14 @@ export default async function RunTracePage({ params }: { params: Promise<{ id: s
 
         {run.retrievalChunks.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
+            <h3 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">
               Retrieval from your URLs/documents ({run.retrievalChunks.length} chunks)
             </h3>
             <div className="space-y-2 max-h-56 overflow-auto scroll-smooth">
               {run.retrievalChunks.slice(0, 10).map((c) => (
-                <div key={c.id} className="text-sm bg-slate-50/80 rounded-lg p-3 border border-slate-200/60 hover:border-slate-300 transition-colors">
-                  <span className="text-xs font-medium text-slate-500">score {c.score.toFixed(3)}</span>
-                  <p className="text-slate-700 mt-1 line-clamp-2">{c.text}</p>
+                <div key={c.id} className="text-sm bg-[var(--bg-subtle)] p-3 border border-[var(--border)] hover:border-[var(--accent-muted)] transition-colors">
+                  <span className="text-xs font-medium text-[var(--text-muted)]">score {c.score.toFixed(3)}</span>
+                  <p className="text-[var(--text-secondary)] mt-1 line-clamp-2">{c.text}</p>
                 </div>
               ))}
             </div>
@@ -151,20 +151,20 @@ export default async function RunTracePage({ params }: { params: Promise<{ id: s
 
         {searxng?.results && searxng.results.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Web search (SearXNG)</h3>
+            <h3 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Web search (SearXNG)</h3>
             <ul className="space-y-3">
               {searxng.results.map((r, i) => (
-                <li key={i} className="text-sm p-3 rounded-lg bg-slate-50/80 border border-slate-200/60 hover:border-slate-300 transition-colors">
-                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[var(--accent-muted)] hover:text-[var(--accent)] font-medium">
+                <li key={i} className="text-sm p-3 bg-[var(--bg-subtle)] border border-[var(--border)] hover:border-[var(--accent-muted)] transition-colors">
+                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:text-[var(--accent-hover)] font-medium">
                     {r.title || r.url}
                   </a>
-                  {r.content && <p className="text-slate-600 mt-0.5 line-clamp-2">{r.content}</p>}
+                  {r.content && <p className="text-[var(--text-secondary)] mt-0.5 line-clamp-2">{r.content}</p>}
                 </li>
               ))}
             </ul>
             {searxng.images && searxng.images.filter((img) => img.url).length > 0 && (
               <div className="mt-4">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">Images from search</p>
+                <p className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-3">Images from search</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {searxng.images.filter((img) => img.url).slice(0, 12).map((img, i) => (
                     <a
@@ -172,7 +172,7 @@ export default async function RunTracePage({ params }: { params: Promise<{ id: s
                       href={img.source || img.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group block rounded-lg overflow-hidden border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all duration-200"
+                      className="group block rounded overflow-hidden border border-[var(--border)] hover:border-[var(--accent-muted)] hover:shadow-md transition-all duration-200"
                     >
                       <img
                         src={img.thumbnail || img.url!}
@@ -183,7 +183,7 @@ export default async function RunTracePage({ params }: { params: Promise<{ id: s
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                       />
                       {img.title && (
-                        <p className="text-xs text-slate-600 px-2 py-1.5 line-clamp-2 bg-white">{img.title}</p>
+                        <p className="text-xs text-[var(--text-secondary)] px-2 py-1.5 line-clamp-2 bg-[var(--bg-elevated)]">{img.title}</p>
                       )}
                     </a>
                   ))}
@@ -195,20 +195,20 @@ export default async function RunTracePage({ params }: { params: Promise<{ id: s
 
         {tavily?.results && tavily.results.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Web search (Tavily)</h3>
+            <h3 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Web search (Tavily)</h3>
             <ul className="space-y-3">
               {tavily.results.map((r, i) => (
-                <li key={i} className="text-sm p-3 rounded-lg bg-slate-50/80 border border-slate-200/60 hover:border-slate-300 transition-colors">
-                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[var(--accent-muted)] hover:text-[var(--accent)] font-medium">
+                <li key={i} className="text-sm p-3 bg-[var(--bg-subtle)] border border-[var(--border)] hover:border-[var(--accent-muted)] transition-colors">
+                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:text-[var(--accent-hover)] font-medium">
                     {r.title || r.url}
                   </a>
-                  {r.content && <p className="text-slate-600 mt-0.5 line-clamp-2">{r.content}</p>}
+                  {r.content && <p className="text-[var(--text-secondary)] mt-0.5 line-clamp-2">{r.content}</p>}
                 </li>
               ))}
             </ul>
             {tavily.images && tavily.images.filter((img) => img.url).length > 0 && (
               <div className="mt-4">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-3">Images from search</p>
+                <p className="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-3">Images from search</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {tavily.images.filter((img) => img.url).slice(0, 12).map((img, i) => (
                     <a
@@ -216,7 +216,7 @@ export default async function RunTracePage({ params }: { params: Promise<{ id: s
                       href={img.url!}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="group block rounded-lg overflow-hidden border border-slate-200 hover:border-blue-300 hover:shadow-md transition-all duration-200"
+                      className="group block rounded overflow-hidden border border-[var(--border)] hover:border-[var(--accent-muted)] hover:shadow-md transition-all duration-200"
                     >
                       <img
                         src={img.url!}
@@ -227,7 +227,7 @@ export default async function RunTracePage({ params }: { params: Promise<{ id: s
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                       />
                       {img.description && (
-                        <p className="text-xs text-slate-600 px-2 py-1.5 line-clamp-2 bg-white">{img.description}</p>
+                        <p className="text-xs text-[var(--text-secondary)] px-2 py-1.5 line-clamp-2 bg-[var(--bg-elevated)]">{img.description}</p>
                       )}
                     </a>
                   ))}
@@ -239,14 +239,14 @@ export default async function RunTracePage({ params }: { params: Promise<{ id: s
 
         {crossref?.results && crossref.results.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Crossref (research metadata)</h3>
+            <h3 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Crossref (research metadata)</h3>
             <ul className="space-y-3">
               {crossref.results.map((r, i) => (
-                <li key={i} className="text-sm p-3 rounded-lg bg-slate-50/80 border border-slate-200/60 hover:border-slate-300 transition-colors">
-                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[var(--accent-muted)] hover:text-[var(--accent)] font-medium">
+                <li key={i} className="text-sm p-3 bg-[var(--bg-subtle)] border border-[var(--border)] hover:border-[var(--accent-muted)] transition-colors">
+                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:text-[var(--accent-hover)] font-medium">
                     {r.title || r.url}
                   </a>
-                  {r.content && <p className="text-slate-600 mt-0.5 line-clamp-2">{r.content}</p>}
+                  {r.content && <p className="text-[var(--text-secondary)] mt-0.5 line-clamp-2">{r.content}</p>}
                 </li>
               ))}
             </ul>
@@ -255,14 +255,14 @@ export default async function RunTracePage({ params }: { params: Promise<{ id: s
 
         {wikipedia?.results && wikipedia.results.length > 0 && (
           <div className="mb-6">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Wikipedia</h3>
+            <h3 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">Wikipedia</h3>
             <ul className="space-y-3">
               {wikipedia.results.map((r, i) => (
-                <li key={i} className="text-sm p-3 rounded-lg bg-slate-50/80 border border-slate-200/60 hover:border-slate-300 transition-colors">
-                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[var(--accent-muted)] hover:text-[var(--accent)] font-medium">
+                <li key={i} className="text-sm p-3 bg-[var(--bg-subtle)] border border-[var(--border)] hover:border-[var(--accent-muted)] transition-colors">
+                  <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:text-[var(--accent-hover)] font-medium">
                     {r.title || r.url}
                   </a>
-                  {r.content && <p className="text-slate-600 mt-0.5 line-clamp-2">{r.content}</p>}
+                  {r.content && <p className="text-[var(--text-secondary)] mt-0.5 line-clamp-2">{r.content}</p>}
                 </li>
               ))}
             </ul>
@@ -271,46 +271,55 @@ export default async function RunTracePage({ params }: { params: Promise<{ id: s
 
       </section>
 
-      <section className="card">
-        <h2 className="section-label">Candidates</h2>
-        <div className="space-y-4">
-          {run.candidates.map((c) => (
-            <div
-              key={c.id}
-              className="rounded-lg border border-slate-200/90 p-5 bg-slate-50/40 hover:border-slate-300 transition-colors"
-            >
-              <p className="text-xs font-medium text-slate-500">{c.modelName} · {c.latencyMs ?? 0}ms</p>
-              <div className="text-slate-800 mt-2 text-sm leading-relaxed">
-                <MarkdownContent content={c.outputText.length > 800 ? c.outputText.slice(0, 800) + '…' : c.outputText} />
+      {run.candidates.length > 0 && (
+        <section className="card">
+          <h2 className="section-label">Candidates <span className="text-[var(--text-muted)] font-normal">({run.candidates.length})</span></h2>
+          <div className="space-y-4">
+            {run.candidates.map((c, idx) => (
+              <div
+                key={c.id}
+                className="border border-[var(--border)] p-5 bg-[var(--bg-subtle)] hover:border-[var(--accent-muted)] transition-colors"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xs font-mono font-semibold text-[var(--accent)]">#{idx + 1}</span>
+                  <span className="text-xs font-medium text-[var(--text-muted)]">{c.modelName}</span>
+                  <span className="text-xs text-[var(--text-muted)] ml-auto">{c.latencyMs ?? 0}ms</span>
+                </div>
+                <div className="text-[var(--text-primary)] text-sm leading-relaxed">
+                  <MarkdownContent content={c.outputText.length > 800 ? c.outputText.slice(0, 800) + '…' : c.outputText} />
+                </div>
+                {c.verifications.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-[var(--border)]">
+                    <ul className="flex flex-wrap gap-2">
+                      {c.verifications.map((v) => (
+                        <li
+                          key={v.id}
+                          className={`text-xs px-2.5 py-1 font-medium ${
+                            v.passFail
+                              ? 'bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--accent-muted)]'
+                              : 'bg-[rgba(251,191,36,0.1)] text-[#f59e0b] border border-[rgba(251,191,36,0.25)]'
+                          }`}
+                        >
+                          {v.type}: {v.passFail ? 'pass' : 'fail'}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
-              <div className="mt-3 pt-3 border-t border-slate-200">
-                <p className="text-xs font-medium text-slate-500 mb-1">Verifications</p>
-                <ul className="flex flex-wrap gap-2">
-                  {c.verifications.map((v) => (
-                    <li
-                      key={v.id}
-                      className={`text-xs px-2.5 py-1 rounded-none font-medium ${
-                        v.passFail ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                      }`}
-                    >
-                      {v.type}: {v.passFail ? 'pass' : 'fail'}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
 
       {judge && (
         <section className="card">
           <h2 className="section-label">Judge</h2>
-          <div className="text-slate-800 leading-relaxed">
+          <div className="text-[var(--text-primary)] leading-relaxed">
             <MarkdownContent content={judge.rationaleText} />
           </div>
           {judge.rubricScoresJson && typeof judge.rubricScoresJson === 'object' && (
-            <div className="mt-3 p-3 bg-slate-50 rounded-none text-xs font-mono text-slate-600">
+            <div className="mt-3 p-3 bg-[var(--bg-inset)] text-xs font-mono text-[var(--text-secondary)]">
               {JSON.stringify(judge.rubricScoresJson, null, 2)}
             </div>
           )}
@@ -319,7 +328,7 @@ export default async function RunTracePage({ params }: { params: Promise<{ id: s
 
       <section className="card">
         <h2 className="section-label">Final answer</h2>
-        <div className="text-slate-800 leading-relaxed">
+        <div className="text-[var(--text-primary)] leading-relaxed">
           <MarkdownContent content={run.finalAnswer ?? '—'} />
         </div>
       </section>

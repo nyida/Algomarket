@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ReliabilityReport } from '@/components/ReliabilityReport';
 import { MarkdownContent } from '@/components/MarkdownContent';
@@ -65,6 +64,7 @@ function HomePageContent() {
   const [fastMode, setFastMode] = useState(true); // Default on for fastest response
   const pipelineMode: 'standard' | 'improved' | 'cortex' = cortexMode ? 'cortex' : improvedMode ? 'improved' : 'standard';
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -127,6 +127,7 @@ function HomePageContent() {
     if (loading) return;
 
     setLoading(true);
+    setLoadingStep('');
     setError(null);
     setInput('');
     setMessages((prev) => [...prev, { role: 'user', content: toSend }]);
@@ -190,13 +191,13 @@ function HomePageContent() {
         if (urlList.length) body.urls = urlList;
         if (uploads.length) body.attachments = uploads;
       } else {
-        body.conversationHistory = [...messages, { role: 'user', content: toSend }].map((m) => ({ role: m.role, content: m.content }));
+        body.conversationHistory = messages.map((m) => ({ role: m.role, content: m.content }));
         if (urlList.length) body.urls = urlList;
         if (uploads.length) body.attachments = uploads;
       }
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3 * 60 * 1000); // 3 min for long runs
+      const timeoutId = setTimeout(() => controller.abort(), 3 * 60 * 1000);
       const res = await fetch('/api/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -204,11 +205,47 @@ function HomePageContent() {
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(typeof data?.error === 'string' ? data.error : data?.error?.message || 'Request failed');
+      if (!res.ok || !res.body) throw new Error('Request failed');
 
-      let displayContent = data.finalAnswer ?? '';
-      const images = (data.images ?? []) as { url: string; title?: string }[];
+      // Consume the SSE stream, updating loading step labels as events arrive
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let data: Record<string, any> = {};
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      outer: while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const chunks = buffer.split('\n\n');
+        buffer = chunks.pop() ?? '';
+        for (const chunk of chunks) {
+          if (!chunk.startsWith('data: ')) continue;
+          let event: Record<string, unknown>;
+          try { event = JSON.parse(chunk.slice(6)); } catch { continue; }
+          if (event.type === 'start') {
+            setLoadingStep('Thinking…');
+          } else if (event.type === 'search') {
+            setLoadingStep(`Searching the web…`);
+          } else if (event.type === 'sources') {
+            const count = event.count as number;
+            const engines = (event.engines as string[]).join(', ');
+            setLoadingStep(`Found ${count} source${count !== 1 ? 's' : ''} · ${engines}`);
+          } else if (event.type === 'generating') {
+            const tier = event.tier as string;
+            const label = tier === 'conversational' ? 'Responding…' : tier === 'knowledge' ? 'Composing answer…' : 'Writing research answer…';
+            setLoadingStep(label);
+          } else if (event.type === 'result') {
+            data = event as Record<string, unknown>;
+            break outer;
+          } else if (event.type === 'error') {
+            throw new Error(typeof event.error === 'string' ? event.error : 'Run failed');
+          }
+        }
+      }
+
+      let displayContent = (data.finalAnswer as string) ?? '';
+      const images = ((data.images ?? []) as { url: string; title?: string }[]);
       const hasImageInContent = /!\[.*?\]\(.*?\)/.test(displayContent);
       if (images.length > 0 && !hasImageInContent) {
         const imageBlocks = images.slice(0, 3).map((img) => `![${img.title ?? 'Relevant image'}](${img.url})`).join('\n\n');
@@ -217,9 +254,9 @@ function HomePageContent() {
       const newAssistant: ChatMessage = {
         role: 'assistant',
         content: displayContent,
-        runId: data.runId,
+        runId: data.runId as string | undefined,
         reliability: data.reliability as Record<string, unknown>,
-        latencyMs: data.latencyMs,
+        latencyMs: data.latencyMs as number | undefined,
         runTrace: data.runTrace as Record<string, unknown> | undefined,
         images: images.length ? images : undefined,
       };
@@ -262,6 +299,7 @@ function HomePageContent() {
       setMessages((prev) => prev.slice(0, -1));
     } finally {
       setLoading(false);
+      setLoadingStep('');
     }
   }
 
@@ -269,56 +307,100 @@ function HomePageContent() {
 
   return (
     <>
-      <div className="relative flex flex-col min-h-0 max-w-4xl mx-auto px-4">
-        {/* Hero (first turn only) */}
-        {isFirstTurn && !loading && (
-          <motion.section
-            className="flex-shrink-0 pt-4 pb-8"
-            variants={container}
-            initial="hidden"
-            animate="show"
-          >
-            <div className="text-center">
-              <motion.div variants={item} className="flex justify-center mb-4">
-                <div className="inline-flex items-center justify-center w-14 h-14 rounded-none overflow-hidden bg-[var(--bg-surface)] border border-[var(--border)]">
-                  <Image src="/logo.png" alt="" width={48} height={48} className="object-contain p-1.5" aria-hidden />
-                </div>
-              </motion.div>
-              <motion.p variants={item} className="mt-3 text-[var(--text-secondary)] max-w-lg mx-auto text-[14px] leading-relaxed font-sans">
-                Submit a query for verified, traceable responses. Attach documents or URLs for sourced answers.
-              </motion.p>
-              <motion.div variants={item} className="mt-5 flex flex-wrap justify-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none text-[11px] font-medium uppercase tracking-wider text-[var(--text-secondary)] bg-[var(--bg-surface)] border border-[var(--border)]">
-                  Verified
-                </span>
-                <span className="inline-flex items-center px-2.5 py-1 rounded-none text-[11px] font-medium uppercase tracking-wider text-[var(--text-secondary)] bg-[var(--bg-surface)] border border-[var(--border)]">
-                  Full traceability
-                </span>
-                <Link
-                  href="/paper.pdf"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none text-[11px] font-medium uppercase tracking-wider text-[var(--accent)] bg-[var(--accent-soft)] hover:bg-[var(--accent-soft)]/80 border border-[var(--accent)]/20 transition-colors"
-                >
-                  <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                  Technical Report (PDF)
-                </Link>
-                {signedIn === false && (
-                  <Link
-                    href="/auth"
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none text-[11px] font-medium uppercase tracking-wider text-[var(--text-secondary)] bg-[var(--bg-surface)] hover:bg-[var(--bg-subtle)] border border-[var(--border)] transition-colors"
-                  >
-                    Sign in to persist conversations
-                  </Link>
-                )}
-              </motion.div>
-            </div>
-          </motion.section>
-        )}
+      {/* First-turn: everything in one full-screen frame */}
+      {isFirstTurn && !loading ? (
+        <motion.div
+          className="relative flex flex-col w-full"
+          style={{ height: 'calc(100vh - 56px)' }}
+          variants={container}
+          initial="hidden"
+          animate="show"
+        >
+          <div className="page-pixel-bg" aria-hidden="true" />
+          {/* Hero — grows to fill available space, content centered */}
+          <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6">
+            <motion.div variants={item} className="flex justify-center mb-10" style={{ perspective: '900px' }}>
+              <div className="cube">
+                <div className="cube__face" id="cube__face--front">{Array.from({length:9}).map((_,i)=><span key={i} className="faceBox"/>)}</div>
+                <div className="cube__face" id="cube__face--back">{Array.from({length:9}).map((_,i)=><span key={i} className="faceBox"/>)}</div>
+                <div className="cube__face" id="cube__face--right">{Array.from({length:9}).map((_,i)=><span key={i} className="faceBox"/>)}</div>
+                <div className="cube__face" id="cube__face--left">{Array.from({length:9}).map((_,i)=><span key={i} className="faceBox"/>)}</div>
+                <div className="cube__face" id="cube__face--top">{Array.from({length:9}).map((_,i)=><span key={i} className="faceBox"/>)}</div>
+                <div className="cube__face" id="cube__face--bottom">{Array.from({length:9}).map((_,i)=><span key={i} className="faceBox"/>)}</div>
+              </div>
+            </motion.div>
+            <motion.h1 variants={item} className="font-serif font-semibold mb-4" style={{ color: 'var(--text-primary)', letterSpacing: '-0.03em', fontSize: 'clamp(2.8rem, 5.5vw, 5rem)', lineHeight: 1.1 }}>
+              OpenPatch
+            </motion.h1>
+            <motion.p variants={item} className="max-w-xl mx-auto leading-relaxed mb-6" style={{ color: 'var(--text-secondary)', fontSize: 'clamp(15px, 1.3vw, 17px)' }}>
+              Verified, traceable responses via multi-model orchestration.
+            </motion.p>
+            <motion.div variants={item} className="flex flex-wrap justify-center gap-4">
+              <Link href="/paper.pdf" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[13px] font-medium transition-opacity hover:opacity-70" style={{ color: 'var(--accent)' }}>
+                <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                Technical Report
+              </Link>
+            </motion.div>
+          </div>
 
+          {/* Input — pinned at bottom of frame */}
+          <motion.div variants={item} className="relative z-10 flex-shrink-0 px-6 pb-8 max-w-5xl mx-auto w-full">
+            <div className="space-y-3">
+              <textarea
+                className="input-base resize-none min-h-[130px] text-[16px]"
+                style={{ opacity: 0.7 }}
+                placeholder="Ask anything…"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+                }}
+              />
+              <div className="flex items-center gap-2 flex-wrap">
+                <PipelineModeSelect value={pipelineMode} onChange={(m) => { setImprovedMode(m === 'improved'); setCortexMode(m === 'cortex'); }} />
+                {improvedMode && (
+                  <label className="flex items-center gap-1.5 text-[12px] cursor-pointer" style={{ color: 'var(--text-muted)' }}>
+                    <input type="checkbox" checked={fastMode} onChange={(e) => setFastMode(e.target.checked)} className="rounded-none" />
+                    Single-candidate
+                  </label>
+                )}
+                <div className="flex items-center gap-2 ml-auto">
+                  <input type="url" className="input-base h-9 py-2 text-[13px] w-48" style={{ opacity: 0.6 }} placeholder="Add URL (optional)" value={urlInput} onChange={(e) => setUrlInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); const u = urlInput.trim(); if (u) { setUrlList((prev) => [...prev, u]); setUrlInput(''); } } }} />
+                  <button type="button" onClick={() => { const u = urlInput.trim(); if (u) { setUrlList((prev) => [...prev, u]); setUrlInput(''); } }} className="btn-secondary text-[13px] h-9 px-3 shrink-0" style={{ opacity: 0.6 }}>Add</button>
+                  <input ref={fileInputRef} type="file" multiple accept=".txt,.pdf,.md,.json,.csv" className="hidden" onChange={handleUpload} />
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="btn-secondary text-[13px] h-9 px-3 inline-flex items-center gap-1.5 shrink-0" style={{ opacity: 0.6 }}>
+                    <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
+                    {uploads.length > 0 ? `${uploads.length} file(s)` : 'Attach'}
+                  </button>
+                  <button type="button" onClick={handleSend} disabled={loading} className="btn-primary h-9 px-5 shrink-0" style={{ opacity: 0.7 }}>Submit</button>
+                </div>
+              </div>
+              {error && (
+                <div className="rounded-none border px-4 py-3 text-sm" style={{ background: 'rgba(248,113,113,0.08)', borderColor: 'rgba(248,113,113,0.25)', color: 'var(--error)' }}>
+                  {error.includes('Visit /setup') ? (<>{error.replace(' Visit /setup to configure.', '')} <Link href="/setup" className="font-medium underline" style={{ color: 'var(--error)' }}>Configure →</Link></>) : error}
+                </div>
+              )}
+              {urlList.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {urlList.map((u, i) => (
+                    <span key={i} className="inline-flex items-center gap-1 px-2 py-1 text-[11px]" style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+                      <span className="max-w-[160px] truncate" title={u}>{u}</span>
+                      <button type="button" onClick={() => setUrlList((prev) => prev.filter((_, j) => j !== i))} style={{ color: 'var(--text-muted)' }} aria-label="Remove URL">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </motion.div>
+      ) : (
+        <div className="relative flex flex-col w-full">
         <section className="flex flex-col min-w-0">
           <div className="py-4 pb-6">
-            <div className={`space-y-5 ${messages.length > 0 ? 'max-w-3xl mx-auto' : ''}`}>
+            <div className="space-y-8 max-w-5xl mx-auto">
               <AnimatePresence initial={false}>
                 {messages.map((m, i) => (
                   <motion.div
@@ -329,114 +411,115 @@ function HomePageContent() {
                     exit="exit"
                     variants={bubble}
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <motion.div
-                      layout
-                      className={`max-w-[88%] rounded-none px-5 py-4 ${
-                        m.role === 'user'
-                          ? 'bg-[var(--bg-subtle)] text-[var(--text-primary)] shadow-sm border border-[var(--border)]'
-                          : 'bg-[var(--bg-surface)] border border-[var(--border)] shadow-[var(--shadow-xs)]'
-                      }`}
-                      transition={{ type: 'spring', stiffness: 400, damping: 25 }}
-                    >
-                      {m.role === 'assistant' ? (
-                        <MarkdownContent content={m.content} />
-                      ) : (
-                        <div className="whitespace-pre-wrap text-[15px] leading-[1.6]">{m.content}</div>
-                      )}
-                          {m.role === 'assistant' && (m.runId || m.reliability || m.latencyMs != null || m.cortex) && (
-                        <div className="mt-4 pt-4 border-t border-[var(--border-soft)] space-y-3">
-                          {m.cortex && (
-                            <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-subtle)] p-4 space-y-3">
-                              <div className="flex items-center gap-2.5 flex-wrap">
-                                <span className="inline-flex items-center px-2.5 py-1 rounded text-[11px] font-medium border bg-[var(--bg-surface)] border-[var(--border)] text-[var(--text-secondary)]">
-                                  Confidence: {Math.round((m.cortex.confidence ?? 0) * 100)}%
-                                </span>
-                                <span className={`inline-flex items-center px-2.5 py-1 rounded-none text-[11px] font-medium border ${
-                                  m.cortex.reliability === 'High' ? 'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent)]/20' :
-                                  m.cortex.reliability === 'Low' ? 'bg-slate-100 text-slate-700 border-slate-200' :
-                                  'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border)]'
-                                }`}>
-                                  Reliability: {m.cortex.reliability}
+                    {m.role === 'user' ? (
+                      /* User message — right-aligned, compact */
+                      <div className="flex justify-end">
+                        <div
+                          className="max-w-[72%] px-4 py-2.5 text-[14px] leading-relaxed"
+                          style={{
+                            background: 'var(--bg-elevated)',
+                            border: '1px solid var(--border)',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          <span className="whitespace-pre-wrap">{m.content}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Assistant message — document style, no bubble */
+                      <div className="space-y-4">
+                        <div className="text-[15px]">
+                          <MarkdownContent content={m.content} />
+                        </div>
+                        {/* Metadata: minimal single-line footer */}
+                        {(m.runId || m.reliability || m.latencyMs != null || m.cortex) && (
+                          <div className="pt-3 border-t space-y-3" style={{ borderColor: 'var(--border-soft)' }}>
+                            {/* CORTEX info */}
+                            {m.cortex && (
+                              <div className="flex items-center gap-3 flex-wrap text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                                <span>Confidence: {Math.round((m.cortex.confidence ?? 0) * 100)}%</span>
+                                <span style={{ color: 'var(--border-bright)' }}>·</span>
+                                <span style={{ color: m.cortex.reliability === 'High' ? 'var(--success)' : 'var(--text-muted)' }}>
+                                  {m.cortex.reliability}
                                 </span>
                                 {m.cortex.selected_model && (
-                                  <span className="text-xs text-slate-600 font-medium">Model: {m.cortex.selected_model}</span>
+                                  <>
+                                    <span style={{ color: 'var(--border-bright)' }}>·</span>
+                                    <span>{m.cortex.selected_model}</span>
+                                  </>
                                 )}
                               </div>
-                              {m.cortex.alternatives?.length > 0 && (
-                                <details className="text-xs">
-                                  <summary className="cursor-pointer text-slate-600 font-medium">Alternative model outputs</summary>
-                                  <ul className="mt-2 space-y-2 pl-2 border-l-2 border-slate-200">
-                                    {m.cortex.alternatives.map((alt, i) => (
-                                      <li key={i}>
-                                        <span className="font-medium text-slate-600">{alt.model}</span>
-                                        {alt.latency_ms != null && <span className="text-slate-500 ml-1">({alt.latency_ms}ms)</span>}
-                                        <p className="mt-0.5 text-slate-600 line-clamp-2">{alt.output}</p>
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </details>
-                              )}
-                            </div>
-                          )}
-                          {m.reliability && typeof m.reliability === 'object' && (
-                            <ReliabilityReport data={m.reliability as import('@/components/ReliabilityReport').ReliabilityData} />
-                          )}
-                          <div className="rounded-none border border-[var(--border)] bg-[var(--bg-subtle)] px-4 py-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 mb-2">Trace</p>
-                            <div className="flex items-center gap-4 flex-wrap">
-                              {m.latencyMs != null && (
-                                <span className="text-sm font-medium text-slate-700">{m.latencyMs}ms</span>
-                              )}
+                            )}
+                            {/* Reliability */}
+                            {m.reliability && typeof m.reliability === 'object' && (
+                              <ReliabilityReport data={m.reliability as import('@/components/ReliabilityReport').ReliabilityData} />
+                            )}
+                            {/* Trace line */}
+                            <div className="flex items-center gap-3 text-[12px]" style={{ color: 'var(--text-muted)' }}>
+                              {m.latencyMs != null && <span>{(m.latencyMs / 1000).toFixed(1)}s</span>}
                               {m.runId && (
-                                <Link
-                                  href={`/runs/${m.runId}`}
-                                  className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--accent)] hover:text-[var(--accent-hover)] transition-colors"
-                                >
-                                  View full trace
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                                </Link>
+                                <>
+                                  <span style={{ color: 'var(--border-bright)' }}>·</span>
+                                  <Link
+                                    href={`/runs/${m.runId}`}
+                                    className="transition-colors hover:opacity-80"
+                                    style={{ color: 'var(--accent)' }}
+                                  >
+                                    View trace
+                                  </Link>
+                                </>
                               )}
                               {m.runTrace && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    const blob = new Blob([JSON.stringify(m.runTrace, null, 2)], { type: 'application/json' });
-                                    const a = document.createElement('a');
-                                    a.href = URL.createObjectURL(blob);
-                                    a.download = `run-trace-${(m.runTrace as { run_id?: string }).run_id ?? 'export'}.json`;
-                                    a.click();
-                                    URL.revokeObjectURL(a.href);
-                                  }}
-                                  className="text-sm font-medium text-slate-600 hover:text-slate-800 transition-colors"
-                                >
-                                  Export JSON
-                                </button>
+                                <>
+                                  <span style={{ color: 'var(--border-bright)' }}>·</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      const blob = new Blob([JSON.stringify(m.runTrace, null, 2)], { type: 'application/json' });
+                                      const a = document.createElement('a');
+                                      a.href = URL.createObjectURL(blob);
+                                      a.download = `trace-${(m.runTrace as { run_id?: string }).run_id ?? 'export'}.json`;
+                                      a.click();
+                                      URL.revokeObjectURL(a.href);
+                                    }}
+                                    className="transition-colors hover:opacity-80"
+                                    style={{ color: 'var(--text-muted)' }}
+                                  >
+                                    Export JSON
+                                  </button>
+                                </>
                               )}
                             </div>
                           </div>
-                        </div>
-                      )}
-                    </motion.div>
+                        )}
+                      </div>
+                    )}
                   </motion.div>
                 ))}
               </AnimatePresence>
               {loading && (
                 <motion.div
-                  initial={{ opacity: 0, y: 8 }}
+                  initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="flex justify-start"
+                  className="flex items-center gap-3 py-2"
                 >
-                  <motion.div
-                    className="rounded-lg bg-[var(--bg-surface)] border border-[var(--border)] px-5 py-4 shadow-[var(--shadow-xs)] inline-flex gap-2.5"
-                    animate={{ opacity: [0.9, 1] }}
-                    transition={{ repeat: Infinity, duration: 1, repeatType: 'reverse' }}
-                  >
-                    <motion.span className="w-2.5 h-2.5 rounded-none bg-[var(--accent)]" animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.5 }} />
-                    <motion.span className="w-2.5 h-2.5 rounded-none bg-[var(--accent)]" animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.5, delay: 0.1 }} />
-                    <motion.span className="w-2.5 h-2.5 rounded-none bg-[var(--accent)]" animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.5, delay: 0.2 }} />
-                  </motion.div>
+                  <div className="loaderRectangle flex-shrink-0">
+                    <div /><div /><div /><div /><div /><div />
+                    <div /><div /><div /><div /><div />
+                  </div>
+                  {loadingStep && (
+                    <motion.span
+                      key={loadingStep}
+                      initial={{ opacity: 0, x: -4 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="text-[12px] truncate max-w-[260px]"
+                      style={{ color: 'var(--text-muted)' }}
+                    >
+                      {loadingStep}
+                    </motion.span>
+                  )}
                 </motion.div>
               )}
               <div ref={messagesEndRef} />
@@ -451,11 +534,11 @@ function HomePageContent() {
                 exit={{ opacity: 0, y: -4 }}
                 className="flex-shrink-0 py-2"
               >
-                <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                <div className="rounded-none border px-4 py-3 text-sm" style={{ background: 'rgba(248,113,113,0.08)', borderColor: 'rgba(248,113,113,0.25)', color: 'var(--error)' }}>
                   {error.includes('Visit /setup') ? (
                     <>
                       {error.replace(' Visit /setup to configure.', '')}{' '}
-                      <Link href="/setup" className="font-medium text-red-800 underline">
+                      <Link href="/setup" className="font-medium underline" style={{ color: 'var(--error)' }}>
                         Configure →
                       </Link>
                     </>
@@ -467,114 +550,18 @@ function HomePageContent() {
             )}
           </AnimatePresence>
 
-          <footer className="flex-shrink-0 pt-4 pb-6">
-            {isFirstTurn ? (
-              <div className="space-y-5">
-                <div className="flex flex-wrap items-center gap-3">
-                  <PipelineModeSelect
-                    value={pipelineMode}
-                    onChange={(m) => {
-                      setImprovedMode(m === 'improved');
-                      setCortexMode(m === 'cortex');
-                    }}
-                  />
-                  {improvedMode && (
-                    <label className="flex items-center gap-2 text-sm text-[var(--text-secondary)] cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={fastMode}
-                        onChange={(e) => setFastMode(e.target.checked)}
-                        className="rounded-none border-slate-300 text-[var(--accent)] focus:ring-[var(--accent)]"
-                      />
-                      Single-candidate
-                    </label>
-                  )}
-                </div>
-                <label className="block">
-                  <span className="sr-only">Query</span>
-                  <textarea
-                    className="input-base resize-none min-h-[100px]"
-                    placeholder="Enter your question or request..."
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
-                    }}
-                  />
-                </label>
-                <div className="flex flex-wrap gap-2.5 items-center">
-                  <div className="flex flex-1 min-w-[200px] gap-2 items-center">
-                    <input
-                      type="url"
-                      className="input-base h-[40px] py-2.5 text-sm flex-1 min-w-0"
-                      placeholder="Add URL for context (optional)"
-                      value={urlInput}
-                      onChange={(e) => setUrlInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          const u = urlInput.trim();
-                          if (u) { setUrlList((prev) => [...prev, u]); setUrlInput(''); }
-                        }
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const u = urlInput.trim();
-                        if (u) { setUrlList((prev) => [...prev, u]); setUrlInput(''); }
-                      }}
-                      className="btn-secondary text-sm h-[40px] px-4 shrink-0"
-                    >
-                      Add
-                    </button>
-                  </div>
-                  <input ref={fileInputRef} type="file" multiple accept=".txt,.pdf,.md,.json,.csv" className="hidden" onChange={handleUpload} />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="btn-secondary text-sm h-[40px] px-4 inline-flex items-center gap-2 shrink-0"
-                  >
-                    <svg className="w-4 h-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Attach
-                  </button>
-                  {uploads.length > 0 && (
-                    <span className="text-xs text-slate-500 font-medium self-center">{uploads.length} file(s)</span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={handleSend}
-                    disabled={loading}
-                    className="btn-primary h-[40px] px-5 shrink-0"
-                  >
-                    Submit
-                  </button>
-                </div>
-                {urlList.length > 0 && (
-                  <div className="flex flex-wrap gap-2 items-center">
-                    {urlList.map((u, i) => (
-                      <span
-                        key={i}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-none bg-[var(--bg-subtle)] border border-[var(--border)] text-[12px] text-[var(--text-secondary)]"
-                      >
-                        <span className="max-w-[180px] truncate" title={u}>{u}</span>
-                        <button
-                          type="button"
-                          onClick={() => setUrlList((prev) => prev.filter((_, j) => j !== i))}
-                          className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-                          aria-label="Remove URL"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4">
+          <footer className="flex-shrink-0 pt-4 pb-8 max-w-5xl mx-auto w-full">
+            <div className="space-y-3">
+                <textarea
+                  rows={3}
+                  className="input-base resize-none min-h-[72px] text-[14px] w-full"
+                  placeholder="Continue the conversation…"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+                  }}
+                />
                 <div className="flex flex-wrap items-center gap-2">
                   <PipelineModeSelect
                     value={pipelineMode}
@@ -585,43 +572,15 @@ function HomePageContent() {
                     size="sm"
                   />
                   {improvedMode && (
-                    <label className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={fastMode}
-                        onChange={(e) => setFastMode(e.target.checked)}
-                        className="rounded-none border-slate-300 text-[var(--accent)] focus:ring-[var(--accent)]"
-                      />
+                    <label className="flex items-center gap-1.5 text-[12px] cursor-pointer" style={{ color: 'var(--text-muted)' }}>
+                      <input type="checkbox" checked={fastMode} onChange={(e) => setFastMode(e.target.checked)} className="rounded-none" />
                       Fast
                     </label>
                   )}
-                  <button
-                    type="button"
-                    onClick={handleSend}
-                    disabled={loading}
-                    className="btn-primary h-10 px-5 shrink-0 ml-auto"
-                  >
-                    Submit
-                  </button>
-                </div>
-                <label className="block w-full">
-                  <span className="sr-only">Follow up</span>
-                  <textarea
-                    rows={3}
-                    className="input-base resize-none min-h-[72px] py-2.5 text-sm w-full"
-                    placeholder="Continue the conversation..."
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
-                    }}
-                  />
-                </label>
-                <div className="flex flex-wrap gap-2.5 items-center">
-                  <div className="flex flex-1 min-w-[160px] gap-2 items-center">
+                  <div className="flex items-center gap-2 ml-auto">
                     <input
                       type="url"
-                      className="input-base h-[36px] py-2 text-sm flex-1 min-w-0"
+                      className="input-base h-9 py-2 text-[13px] w-40"
                       placeholder="Add URL"
                       value={urlInput}
                       onChange={(e) => setUrlInput(e.target.value)}
@@ -635,57 +594,56 @@ function HomePageContent() {
                     />
                     <button
                       type="button"
-                      onClick={() => {
-                        const u = urlInput.trim();
-                        if (u) { setUrlList((prev) => [...prev, u]); setUrlInput(''); }
-                      }}
-                      className="btn-secondary text-sm h-[36px] px-3 shrink-0"
+                      onClick={() => { const u = urlInput.trim(); if (u) { setUrlList((prev) => [...prev, u]); setUrlInput(''); } }}
+                      className="btn-secondary text-[13px] h-9 px-3 shrink-0"
                     >
                       Add
                     </button>
+                    <input ref={fileInputRef} type="file" multiple accept=".txt,.pdf,.md,.json,.csv" className="hidden" onChange={handleUpload} />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="btn-secondary text-[13px] h-9 px-3 inline-flex items-center gap-1.5 shrink-0"
+                    >
+                      <svg className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                      </svg>
+                      {uploads.length > 0 ? `${uploads.length} file(s)` : 'Attach'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSend}
+                      disabled={loading}
+                      className="btn-primary h-9 px-5 shrink-0"
+                    >
+                      Submit
+                    </button>
                   </div>
-                  <input ref={fileInputRef} type="file" multiple accept=".txt,.pdf,.md,.json,.csv" className="hidden" onChange={handleUpload} />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="btn-secondary text-sm h-[36px] px-4 inline-flex items-center gap-2 shrink-0"
-                  >
-                    <svg className="w-4 h-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                    </svg>
-                    Attach
-                  </button>
-                  {uploads.length > 0 && (
-                    <span className="text-xs text-slate-500 font-medium">{uploads.length} file(s)</span>
-                  )}
-                  {urlList.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {urlList.map((u, i) => (
-                        <span
-                          key={i}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-none bg-[var(--bg-subtle)] border border-[var(--border)] text-[11px] text-[var(--text-secondary)]"
-                        >
-                          <span className="max-w-[120px] truncate" title={u}>{u}</span>
-                          <button type="button" onClick={() => setUrlList((prev) => prev.filter((_, j) => j !== i))} className="text-[var(--text-muted)] hover:text-[var(--text-primary)]" aria-label="Remove">
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              </div>
-            )}
+                {urlList.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {urlList.map((u, i) => (
+                      <span key={i} className="inline-flex items-center gap-1 px-2 py-1 text-[11px]" style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
+                        <span className="max-w-[120px] truncate" title={u}>{u}</span>
+                        <button type="button" onClick={() => setUrlList((prev) => prev.filter((_, j) => j !== i))} style={{ color: 'var(--text-muted)' }} aria-label="Remove">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+            </div>
           </footer>
         </section>
-      </div>
+        </div>
+      )}
     </>
   );
 }
 
 export default function HomePage() {
   return (
-    <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center text-slate-500">Loading…</div>}>
+    <Suspense fallback={<div className="min-h-[60vh] flex items-center justify-center" style={{ color: 'var(--text-muted)' }}>Loading…</div>}>
       <HomePageContent />
     </Suspense>
   );

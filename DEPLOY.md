@@ -31,14 +31,17 @@ This adds `DATABASE_URL`, `POSTGRES_PRISMA_URL`, and Supabase auth vars automati
 
 ## 3. Add env vars manually
 
-Vercel → **Settings** → **Environment Variables**:
+Vercel → **Settings** → **Environment Variables**. For each variable, enable **Production**, **Preview**, and **Build**.
 
 | Name | Value | Required |
 |------|-------|----------|
+| `DATABASE_URL` | Pooler URL from Supabase (Settings → Database → Connection string, Transaction pooler, port 6543) | **Yes** – add manually if build fails |
 | `OPENROUTER_API_KEY` | Your key from [openrouter.ai/keys](https://openrouter.ai/keys) | Yes |
 | `ENCRYPTION_KEY` | Any 32+ character secret (e.g. `openpatch-secret-key-32-chars-min`) | Yes |
 | `TAVILY_API_KEY` | [Tavily](https://tavily.com) key for web search + images | No |
 | `VERSION_TAG` | e.g. `v1.0.0` | No |
+
+**If the build fails with a DATABASE_URL error:** Add `DATABASE_URL` manually. Copy the connection string from Supabase → Settings → Database → Connection string (use the **Transaction** pooler, port **6543**).
 
 ---
 

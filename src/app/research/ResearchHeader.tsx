@@ -30,39 +30,43 @@ export function ResearchHeader() {
       >
         <div className="flex items-center gap-3 mb-4">
           <Image src="/logo.png" alt="" width={40} height={40} className="object-contain" aria-hidden />
-          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>
             Technical Report
           </p>
         </div>
-        <h1 className="font-serif text-4xl font-semibold text-slate-900 tracking-tight leading-tight">
+        <h1 className="font-serif text-4xl font-semibold tracking-tight leading-tight" style={{ color: 'var(--text-primary)' }}>
           OpenPatch: Methodology &amp; Research
         </h1>
-        <p className="mt-4 text-lg text-slate-600 leading-relaxed max-w-2xl">
+        <p className="mt-4 text-[17px] leading-relaxed max-w-2xl" style={{ color: 'var(--text-primary)' }}>
           A verification-first pipeline for reliable language-model outputs: multi-model orchestration,
           programmatic verification (arithmetic, citation, contradiction, safety), judge-based selection,
           and structured reliability reporting. Optional CORTEX mode adds calibrated confidence and learned routing.
         </p>
         <div className="mt-6 flex flex-wrap items-center gap-3">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 bg-slate-100 px-2 py-1 rounded-none">v1</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 rounded-none" style={{ color: 'var(--text-muted)', background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>v1</span>
         </div>
       </motion.header>
 
       <motion.nav
-        className="mb-16 pb-8 border-b border-slate-200/90"
+        className="mb-16 pb-8"
+        style={{ borderBottom: '1px solid var(--border-soft)' }}
         aria-label="On this page"
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1, duration: 0.4 }}
       >
-        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-400 mb-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] mb-4" style={{ color: 'var(--text-muted)' }}>
           Contents
         </p>
-        <ul className="space-y-2.5 text-sm">
+        <ul className="space-y-2.5 text-[14px]">
           {sections.map(({ id, title }) => (
             <li key={id}>
               <Link
                 href={`#${id}`}
-                className="text-slate-600 hover:text-slate-900 transition-colors border-b border-transparent hover:border-slate-300"
+                className="transition-colors hover:opacity-100"
+                style={{ color: 'var(--text-primary)' }}
+                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--accent)')}
+                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
               >
                 {title}
               </Link>

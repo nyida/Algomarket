@@ -32,9 +32,8 @@ export default async function RunsPage() {
         <p className="page-subtitle">Inspect traces and reliability for each run.</p>
       </div>
       {!session && (
-        <div className="card max-w-md border-[var(--border)] mb-6">
-          <p className="text-slate-700 text-sm">Log in to view your run traces.</p>
-          <Link href="/auth" className="btn-primary mt-3 inline-block">Log in</Link>
+        <div className="px-4 py-3 text-sm mb-6" style={{ border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
+          Not signed in — <Link href="/auth" className="hover:opacity-70 transition-opacity" style={{ color: 'var(--accent)' }}>log in</Link> to view and inspect your run traces.
         </div>
       )}
       <RunsList runs={runs} />

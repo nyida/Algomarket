@@ -15,6 +15,7 @@ import type { CandidateData, VerificationResult } from './types';
 const DEFAULT_MODEL = process.env.OLLAMA_MODEL ?? 'llama3.2';
 const DEFAULT_TEMP = 0.3;
 const DEFAULT_MAX_TOKENS = 1024;
+const FAST_MAX_TOKENS = 512;
 const N_CANDIDATES = Math.min(5, Math.max(2, parseInt(process.env.CANDIDATE_COUNT ?? process.env.IMPROVED_N_CANDIDATES ?? '3', 10)));
 
 export interface StandardInput {
@@ -58,34 +59,27 @@ export async function runStandard(input: StandardInput): Promise<StandardResult>
     { role: 'user' as const, content: input.prompt },
   ];
   const start = Date.now();
-  const candidates: RunCandidate[] = [];
 
-  for (let i = 0; i < n; i++) {
-    const seed = seed32(`${input.baseSeed}|${stableKeyTemperature(temperature)}|cand:${i}`);
-    const dryRunEval =
-      input.dryRun && input.evalMode && input.ground_truth != null
-        ? { ground_truth: input.ground_truth, candidateIndex: i, baseSeed: input.baseSeed }
-        : undefined;
-    const t0 = Date.now();
-    const raw = await completeWithModel(model, messages, {
-      temperature,
-      maxTokens,
-      seed,
-      dryRunEval,
-    });
-    const latencyMs = Date.now() - t0;
-    const parsed = input.evalMode ? parseAnswer(raw) : undefined;
-    candidates.push({
-      model,
-      raw,
-      parsed,
-      latencyMs,
-      sample_index: i,
-      seed,
-      temperature,
-      maxTokens,
-    });
-  }
+  // Generate all candidates in parallel — each gets its own deterministic seed
+  const candidates: RunCandidate[] = await Promise.all(
+    Array.from({ length: n }, async (_, i) => {
+      const seed = seed32(`${input.baseSeed}|${stableKeyTemperature(temperature)}|cand:${i}`);
+      const dryRunEval =
+        input.dryRun && input.evalMode && input.ground_truth != null
+          ? { ground_truth: input.ground_truth, candidateIndex: i, baseSeed: input.baseSeed }
+          : undefined;
+      const t0 = Date.now();
+      const raw = await completeWithModel(model, messages, {
+        temperature,
+        maxTokens,
+        seed,
+        dryRunEval,
+      });
+      const latencyMs = Date.now() - t0;
+      const parsed = input.evalMode ? parseAnswer(raw) : undefined;
+      return { model, raw, parsed, latencyMs, sample_index: i, seed, temperature, maxTokens };
+    })
+  );
 
   const promptHash = `std-${input.baseSeed.slice(0, 12)}`;
   const candidatesWithVerifications: { id: string; data: CandidateData; verifications: VerificationResult[] }[] = [];
@@ -93,31 +87,32 @@ export async function runStandard(input: StandardInput): Promise<StandardResult>
     const c = candidates[i];
     const calcResult = verifyArithmetic(c.raw);
     const safetyResult = verifySafety(input.prompt, c.raw);
-    const verifications: VerificationResult[] = [calcResult, safetyResult];
     candidatesWithVerifications.push({
       id: String(i),
-      data: {
-        modelName: c.model,
-        promptHash,
-        outputText: c.raw,
-        tokenCounts: undefined,
-        latencyMs: c.latencyMs,
-      },
-      verifications,
+      data: { modelName: c.model, promptHash, outputText: c.raw, tokenCounts: undefined, latencyMs: c.latencyMs },
+      verifications: [calcResult, safetyResult],
     });
   }
 
-  const judgeOutput = await runJudge(
-    input.prompt,
-    [],
-    candidatesWithVerifications,
-    defaultLLM
-  );
-  const chosenIndex = Math.max(0, candidatesWithVerifications.findIndex((c) => c.id === judgeOutput.chosenCandidateId));
+  // Skip the expensive LLM judge when all parsed answers agree — just take the first valid one
+  let chosenIndex = 0;
+  let judgeRationale = 'All candidates agree; judge skipped.';
+  let finalAnswerEdit: string | undefined;
+
+  const parsedAnswers = candidates.map((c) => (input.evalMode ? (c.parsed ?? parseAnswer(c.raw)) : c.raw.trim()));
+  const allAgree = parsedAnswers.length > 1 && parsedAnswers.every((a) => a === parsedAnswers[0]);
+
+  if (!allAgree) {
+    const judgeOutput = await runJudge(input.prompt, [], candidatesWithVerifications, defaultLLM);
+    chosenIndex = Math.max(0, candidatesWithVerifications.findIndex((c) => c.id === judgeOutput.chosenCandidateId));
+    judgeRationale = judgeOutput.rationale;
+    if (judgeOutput.finalAnswerEdit) finalAnswerEdit = judgeOutput.finalAnswerEdit;
+  }
+
   const chosen = candidates[chosenIndex];
   const chosenVerifications = candidatesWithVerifications[chosenIndex]?.verifications ?? [];
   let final_answer = chosen?.raw ?? '';
-  if (judgeOutput.finalAnswerEdit) final_answer = judgeOutput.finalAnswerEdit;
+  if (finalAnswerEdit) final_answer = finalAnswerEdit;
   const parsed_answer = input.evalMode && chosen ? (chosen.parsed ?? parseAnswer(chosen.raw)) : undefined;
 
   const reliability = buildReliabilityReport(false, chosenVerifications);
@@ -134,7 +129,7 @@ export async function runStandard(input: StandardInput): Promise<StandardResult>
     candidates,
     metadata: {
       latencyMs,
-      judge: { chosen_index: chosenIndex, rationale: judgeOutput.rationale },
+      judge: { chosen_index: chosenIndex, rationale: judgeRationale },
       verification: { format_ok, refusal_ok },
       confidence,
     },

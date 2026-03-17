@@ -26,7 +26,23 @@ function getDatabaseUrl(): string {
         'Use your Postgres pooler URL (e.g. postgresql://user:pass@host:6543/postgres). No quotes.'
     );
   }
-  return url;
+  return normalizeForPrisma(url);
+}
+
+function normalizeForPrisma(url: string): string {
+  // Supabase transaction pooler (:6543) can fail with prepared statement conflicts
+  // unless Prisma is told to use pgbouncer mode.
+  const isSupabasePooler = /pooler\.supabase\.com:6543(?:\/|$)/.test(url);
+  if (!isSupabasePooler) return url;
+
+  try {
+    const parsed = new URL(url);
+    if (!parsed.searchParams.has('pgbouncer')) parsed.searchParams.set('pgbouncer', 'true');
+    if (!parsed.searchParams.has('connection_limit')) parsed.searchParams.set('connection_limit', '1');
+    return parsed.toString();
+  } catch {
+    return url;
+  }
 }
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };

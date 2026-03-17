@@ -42,19 +42,13 @@ export default function ChatsPage() {
         <p className="page-subtitle">Open a past conversation to continue or view.</p>
       </div>
       {loading ? (
-        <p className="text-slate-500 text-sm">Loading…</p>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Loading…</p>
       ) : signedIn === false ? (
-        <div className="card max-w-md border-[var(--border)]">
-          <h2 className="font-semibold text-[var(--text-primary)]">Not signed in</h2>
-          <p className="text-slate-600 text-sm mt-1 mb-4">
-            Log in or create an account to save your chats and access them from any device.
-          </p>
-          <Link href="/auth" className="btn-primary inline-block">
-            Log in / Sign up
-          </Link>
+        <div className="px-4 py-3 text-sm" style={{ border: '1px solid var(--border)', color: 'var(--text-primary)' }}>
+          Not signed in — <Link href="/auth" className="hover:opacity-70 transition-opacity" style={{ color: 'var(--accent)' }}>log in</Link> to save and access your conversations across devices.
         </div>
       ) : chats.length === 0 ? (
-        <p className="text-slate-500 text-sm">No saved chats yet. Start a conversation on Chat and it will be saved here.</p>
+        <p className="text-sm" style={{ color: 'var(--text-muted)' }}>No saved chats yet. Start a conversation and it will appear here.</p>
       ) : (
         <ul className="space-y-2">
           {chats.map((c) => (
@@ -63,8 +57,8 @@ export default function ChatsPage() {
                 href={`/?chat=${c.id}`}
                 className="block rounded-lg border border-[var(--border)] bg-[var(--bg-surface)] p-4 transition-colors hover:border-[#d6d3d1] hover:bg-[var(--bg-subtle)]"
               >
-                <p className="text-slate-800 font-medium line-clamp-1">{c.title || 'Chat'}</p>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="font-medium line-clamp-1" style={{ color: 'var(--text-primary)' }}>{c.title || 'Chat'}</p>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>
                   {new Date(c.updatedAt).toLocaleString()}
                 </p>
               </Link>

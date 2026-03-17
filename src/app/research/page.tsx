@@ -17,8 +17,8 @@ export default function ResearchPage() {
 
         <article className="research-article space-y-14">
           <ResearchSection id="abstract">
-            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">Abstract</h2>
-            <p className="text-slate-700 leading-[1.75]">
+            <h2 className="font-serif text-2xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>Abstract</h2>
+            <p className="leading-[1.75]" style={{ color: 'var(--text-primary)' }}>
               We describe the design and implementation of OpenPatch, a verification-first system
               that improves the correctness and auditability of language-model-generated answers.
               The main pipeline: (1) optionally classifies the query by task type, (2) augments
@@ -38,8 +38,8 @@ export default function ResearchPage() {
           </ResearchSection>
 
           <ResearchSection id="introduction">
-            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">1. Introduction</h2>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <h2 className="font-serif text-2xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>1. Introduction</h2>
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               Single large language models (LLMs) are prone to arithmetic errors, unsupported
               factual claims, and internal contradictions. Simply scaling models or sampling more
               does not remove these failure modes. Our approach is to treat the problem as
@@ -47,7 +47,7 @@ export default function ResearchPage() {
               deterministic and model-based checks on each, and then select and optionally refine an
               answer using a judge that sees both the candidates and the verification outcomes.
             </p>
-            <p className="text-slate-700 leading-[1.75]">
+            <p className="leading-[1.75]" style={{ color: 'var(--text-primary)' }}>
               The system is designed for transparency: every run produces a reliability report
               (retrieval usage, claims-supported percentage, arithmetic verification, contradiction
               detection, overall confidence) and a full trace (input, retrieval chunks, candidates,
@@ -57,10 +57,10 @@ export default function ResearchPage() {
           </ResearchSection>
 
           <ResearchSection id="pipeline">
-            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">
+            <h2 className="font-serif text-2xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
               2. Pipeline Architecture
             </h2>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               The UI offers three pipeline choices. <strong>Standard</strong> runs the full pipeline
               (steps below). <strong>Improved</strong> skips verifiers and judge: it generates
               <em>N</em> candidates and selects by majority vote on parsed answers (eval mode) or
@@ -72,7 +72,7 @@ export default function ResearchPage() {
               <strong> improved</strong> (multi-candidate then vote). Below we describe the full
               (Standard) pipeline. Given a user query and optional attachments or URLs:
             </p>
-            <ol className="list-decimal list-inside space-y-2 text-slate-700 leading-[1.75] mb-4">
+            <ol className="list-decimal list-inside space-y-2 leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               <li>
                 <strong>Task classification (optional)</strong> — When enabled (see §3), an LLM
                 classifies the query into one of: factual_with_sources, math_logic, code_assistance,
@@ -109,7 +109,7 @@ export default function ResearchPage() {
                 verifications, judge decision) is persisted as a trace.
               </li>
             </ol>
-            <p className="text-slate-700 leading-[1.75]">
+            <p className="leading-[1.75]" style={{ color: 'var(--text-primary)' }}>
               Full pipeline: Query + optional docs/URLs (or web search) → Optional classify task →
               Retrieve / web context → top-k chunks → Generate N candidates in parallel → For each
               candidate: calculator, contradiction, safety, [citation if RAG] → Judge(candidates +
@@ -118,10 +118,10 @@ export default function ResearchPage() {
           </ResearchSection>
 
           <ResearchSection id="routing">
-            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">
+            <h2 className="font-serif text-2xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
               3. Task Classification
             </h2>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               Task classification is <strong>optional</strong> and is <strong>disabled by
               default</strong> (via <code className="research-code">SKIP_ROUTER</code>; when
               unset, the router is skipped and the run is stored with task type
@@ -130,7 +130,7 @@ export default function ResearchPage() {
               to map the user input (and a flag indicating whether attachments or URLs were
               provided) into a discrete task type. The labels are:
             </p>
-            <ul className="list-disc list-inside space-y-1 text-slate-700 leading-[1.75] mb-4">
+            <ul className="list-disc list-inside space-y-1 leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               <li>
                 <strong>factual_with_sources</strong> — Questions that benefit from citations or
                 facts drawn from provided documents.
@@ -150,7 +150,7 @@ export default function ResearchPage() {
                 <strong>unknown</strong> — Unclear or mixed.
               </li>
             </ul>
-            <p className="text-slate-700 leading-[1.75]">
+            <p className="leading-[1.75]" style={{ color: 'var(--text-primary)' }}>
               The classifier is instructed to reply with only the label. We normalize the output
               (trim, lowercase, replace spaces with underscores) and fall back to
               <code className="research-code">unknown</code> (or
@@ -162,25 +162,25 @@ export default function ResearchPage() {
           </ResearchSection>
 
           <ResearchSection id="retrieval">
-            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">
+            <h2 className="font-serif text-2xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
               4. Retrieval &amp; RAG
             </h2>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               When the user supplies one or more documents (uploaded files) or URLs, we:
             </p>
-            <ol className="list-decimal list-inside space-y-2 text-slate-700 leading-[1.75] mb-4">
+            <ol className="list-decimal list-inside space-y-2 leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               <li>Fetch and parse URL content or read uploaded file content (with type and size limits).</li>
               <li>Chunk documents using a configurable chunk size and overlap (semantic boundaries preferred where applicable).</li>
               <li>Embed the user query and all document chunks with the same embedding model.</li>
               <li>Compute cosine similarity between the query embedding and each chunk; sort by score and take the top <em>k</em> (e.g. 10).</li>
             </ol>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               The top-<em>k</em> chunks are then (1) injected into the prompt as &quot;Relevant
               context&quot; for all candidate generators, and (2) stored on the run for the
               citation verifier. The citation verifier later checks that factual claims in the
               chosen answer are supported by these chunks (§6).
             </p>
-            <p className="text-slate-700 leading-[1.75]">
+            <p className="leading-[1.75]" style={{ color: 'var(--text-primary)' }}>
               Retrieval from user docs/URLs is optional; if none are given, the pipeline runs
               without RAG and without citation verification. When <code className="research-code">TAVILY_ENABLED</code> is
               set and no documents or URLs are supplied, we optionally augment context with web
@@ -190,10 +190,10 @@ export default function ResearchPage() {
           </ResearchSection>
 
           <ResearchSection id="generation">
-            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">
+            <h2 className="font-serif text-2xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
               5. Multi-Candidate Generation
             </h2>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               We generate <em>N</em> candidate answers in parallel using <em>N</em> different model
               configurations (e.g. different models or temperatures). Each configuration receives the
               same input: a fixed system prompt (accuracy, citing sources when used, showing work
@@ -201,7 +201,7 @@ export default function ResearchPage() {
               multi-turn), and the current user message plus any retrieved context. No
               cross-candidate information is used at generation time.
             </p>
-            <p className="text-slate-700 leading-[1.75]">
+            <p className="leading-[1.75]" style={{ color: 'var(--text-primary)' }}>
               By using multiple models or settings we increase the chance that at least one
               candidate is correct or well-calibrated; the verification layer then filters
               obviously wrong arithmetic or unsupported claims, and the judge selects among the
@@ -211,18 +211,18 @@ export default function ResearchPage() {
           </ResearchSection>
 
           <ResearchSection id="verification">
-            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">
+            <h2 className="font-serif text-2xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
               6. Verification Layer
             </h2>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               Each candidate is passed through four verification steps. All results are stored and
               later used by the judge and the reliability report.
             </p>
 
-            <h3 className="font-serif text-lg font-semibold text-slate-800 mt-6 mb-2">
+            <h3 className="font-serif text-lg font-semibold mt-6 mb-2" style={{ color: 'var(--text-primary)' }}>
               6.1 Calculator (arithmetic)
             </h3>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               We use a deterministic, rule-based pass over the candidate text to find arithmetic
               expressions of the form <em>expr = value</em> (e.g. &quot;15 + 27 = 42&quot;). We
               restrict to expressions that are safe to evaluate (numbers and operators only). Each
@@ -232,10 +232,10 @@ export default function ResearchPage() {
               This catches a large class of LLM arithmetic errors without any additional model calls.
             </p>
 
-            <h3 className="font-serif text-lg font-semibold text-slate-800 mt-6 mb-2">
+            <h3 className="font-serif text-lg font-semibold mt-6 mb-2" style={{ color: 'var(--text-primary)' }}>
               6.2 Citation (when RAG is used)
             </h3>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               We first extract atomic factual claims from the candidate using an LLM (one claim per
               line; no opinions or instructions). For each claim we then determine whether it is
               supported by the retrieved chunks. Support is computed using (1) string overlap
@@ -246,20 +246,20 @@ export default function ResearchPage() {
               includes the percentage of claims supported.
             </p>
 
-            <h3 className="font-serif text-lg font-semibold text-slate-800 mt-6 mb-2">
+            <h3 className="font-serif text-lg font-semibold mt-6 mb-2" style={{ color: 'var(--text-primary)' }}>
               6.3 Contradiction
             </h3>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               We ask an LLM a single yes/no question: &quot;Does the following text contain any
               internal contradictions?&quot; with the candidate text. If the model responds in the
               affirmative, the verifier fails. This is a lightweight check for self-consistency
               (e.g. stating X and later stating the opposite).
             </p>
 
-            <h3 className="font-serif text-lg font-semibold text-slate-800 mt-6 mb-2">
+            <h3 className="font-serif text-lg font-semibold mt-6 mb-2" style={{ color: 'var(--text-primary)' }}>
               6.4 Safety
             </h3>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               For sensitive user queries (e.g. containing tokens related to passwords, weapons,
               illegal content), we require that the answer exhibits refusal indicators (e.g.
               &quot;I cannot&quot;, &quot;against my guidelines&quot;). This is implemented as a
@@ -271,19 +271,19 @@ export default function ResearchPage() {
           </ResearchSection>
 
           <ResearchSection id="judge">
-            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">
+            <h2 className="font-serif text-2xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
               7. Judge &amp; Selection
             </h2>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               The judge is a single LLM call that receives:
             </p>
-            <ul className="list-disc list-inside space-y-1 text-slate-700 leading-[1.75] mb-4">
+            <ul className="list-disc list-inside space-y-1 leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               <li>The user request</li>
               <li>Retrieved context (if any)</li>
               <li>Each candidate&apos;s text (truncated to a fixed length) and its verification
                 summary (type, pass/fail, notes)</li>
             </ul>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               The judge is instructed to score candidates on correctness, completeness,
               instruction-following, and uncertainty calibration, and to prefer candidates with
               verified claims and no contradictions. It returns structured JSON: chosen candidate
@@ -298,42 +298,42 @@ export default function ResearchPage() {
           </ResearchSection>
 
           <ResearchSection id="reliability">
-            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">
+            <h2 className="font-serif text-2xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
               8. Reliability Report
             </h2>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               The reliability report is a structured summary shown to the user and stored on the
               run. It includes:
             </p>
-            <dl className="space-y-2 text-slate-700 leading-[1.75] mb-4">
-              <dt className="font-semibold text-slate-800">Retrieval used</dt>
+            <dl className="space-y-2 leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
+              <dt className="font-semibold" style={{ color: 'var(--text-primary)' }}>Retrieval used</dt>
               <dd className="ml-4">Whether RAG was used (documents or URLs).</dd>
-              <dt className="font-semibold text-slate-800">Claims supported %</dt>
+              <dt className="font-semibold" style={{ color: 'var(--text-primary)' }}>Claims supported %</dt>
               <dd className="ml-4">When RAG was used, the fraction of extracted claims that were supported by retrieved chunks (only present when citation verification ran).</dd>
-              <dt className="font-semibold text-slate-800">Arithmetic verified</dt>
+              <dt className="font-semibold" style={{ color: 'var(--text-primary)' }}>Arithmetic verified</dt>
               <dd className="ml-4">Whether the calculator verifier passed for the chosen candidate.</dd>
-              <dt className="font-semibold text-slate-800">Contradictions detected</dt>
+              <dt className="font-semibold" style={{ color: 'var(--text-primary)' }}>Contradictions detected</dt>
               <dd className="ml-4">Whether the contradiction verifier failed for the chosen candidate.</dd>
-              <dt className="font-semibold text-slate-800">Overall confidence</dt>
+              <dt className="font-semibold" style={{ color: 'var(--text-primary)' }}>Overall confidence</dt>
               <dd className="ml-4">A ternary label: high, medium, or low. We set <strong>low</strong> if there are contradictions or (with RAG) claims-supported is below 50%; <strong>high</strong> if there are no contradictions and (when applicable) claims-supported ≥ 80% and arithmetic verified; otherwise <strong>medium</strong>.</dd>
             </dl>
-            <p className="text-slate-700 leading-[1.75]">
+            <p className="leading-[1.75]" style={{ color: 'var(--text-primary)' }}>
               A short natural-language explanation is also produced by concatenating the above
               facts, so users can quickly see why a given confidence level was assigned.
             </p>
           </ResearchSection>
 
           <ResearchSection id="eval">
-            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">
+            <h2 className="font-serif text-2xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
               9. Evaluation
             </h2>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               We use two complementary evaluation setups.
             </p>
-            <h3 className="font-serif text-lg font-semibold text-slate-800 mt-6 mb-2">
+            <h3 className="font-serif text-lg font-semibold mt-6 mb-2" style={{ color: 'var(--text-primary)' }}>
               9.1 In-app evaluation suite
             </h3>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               A fixed set of evaluation cases is grouped into suites (e.g. &quot;OpenPatch Default
               Suite&quot;, 39 cases). Each case has an input prompt, an optional attachment
               reference, a task type, and optional expected properties (e.g. minimum confidence
@@ -344,10 +344,10 @@ export default function ResearchPage() {
               <code className="research-code">VERSION_TAG</code>) so we can compare pass rates and
               metrics across versions for regression tracking.
             </p>
-            <h3 className="font-serif text-lg font-semibold text-slate-800 mt-6 mb-2">
+            <h3 className="font-serif text-lg font-semibold mt-6 mb-2" style={{ color: 'var(--text-primary)' }}>
               9.2 External benchmark harness (baseline vs improved)
             </h3>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               A Python-based harness (<code className="research-code">evals/</code>) runs
               baseline and improved modes against benchmark datasets. Each dataset item has a
               prompt and ground-truth answer (strict <code className="research-code">ANSWER:
@@ -362,10 +362,10 @@ export default function ResearchPage() {
               time-based entropy is used. Dry-run mode uses a fake LLM keyed by ground truth for
               testing without live models.
             </p>
-            <h3 className="font-serif text-lg font-semibold text-slate-800 mt-6 mb-2">
+            <h3 className="font-serif text-lg font-semibold mt-6 mb-2" style={{ color: 'var(--text-primary)' }}>
               9.3 Publication-scale evaluation (GSM8K)
             </h3>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               For publication (e.g. TMLR), results must use <strong>full-scale</strong> evaluation.
               The standard is the full GSM8K test set (1319 examples). Small datasets (e.g. 200
               items) are for debugging and sanity checks only. Required artifacts: for OpenPatch,
@@ -379,23 +379,23 @@ export default function ResearchPage() {
               scripts/run_all.py ../evals/datasets/gsm8k.json</code>. See
               <code className="research-code">docs/TMLR_SUBMISSION_READINESS.md</code> in the repo.
             </p>
-            <p className="text-slate-700 leading-[1.75]">
+            <p className="leading-[1.75]" style={{ color: 'var(--text-primary)' }}>
               Together, the in-app suite and the external harness support regression detection
               and reproducible comparison of baseline vs improved (and CORTEX when used).
             </p>
           </ResearchSection>
 
           <ResearchSection id="cortex">
-            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">
+            <h2 className="font-serif text-2xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
               10. CORTEX (Optional Extension)
             </h2>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               CORTEX is an <strong>optional extension</strong> in the same repository. It provides
               calibrated confidence estimation and learned model routing. It runs as a separate
               Python FastAPI backend; when the user selects CORTEX in the pipeline toggle, the app
               proxies queries to that backend instead of the main OpenPatch pipeline.
             </p>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               <strong>Inference:</strong> The same prompt is sent to multiple models (e.g. llama3,
               mistral, phi, gemma via Ollama). <strong>Confidence:</strong> A heuristic score is
               computed from ensemble features (response length, token entropy, self-consistency
@@ -410,7 +410,7 @@ export default function ResearchPage() {
               the calibrated global heuristic is exposed as an optional
               <code className="research-code">ensemble_confidence</code> field.
             </p>
-            <p className="text-slate-700 leading-[1.75]">
+            <p className="leading-[1.75]" style={{ color: 'var(--text-primary)' }}>
               The experiment runner collects per-(prompt, model) records with a deterministic
               60/20/20 train/val/test split. Evaluation reports baseline accuracy (first model per
               prompt), routed accuracy (argmax P(correct)), and oracle accuracy (max correct over
@@ -421,10 +421,10 @@ export default function ResearchPage() {
           </ResearchSection>
 
           <ResearchSection id="references">
-            <h2 className="font-serif text-2xl font-semibold text-slate-900 mb-4">
+            <h2 className="font-serif text-2xl font-semibold mb-4" style={{ color: 'var(--text-primary)' }}>
               References &amp; Further Reading
             </h2>
-            <p className="text-slate-700 leading-[1.75] mb-4">
+            <p className="leading-[1.75] mb-4" style={{ color: 'var(--text-primary)' }}>
               The design draws on established ideas: multi-model ensembles and voting, RAG and
               retrieval-augmented generation, claim extraction and citation checking, and
               rubric-based LLM-as-judge evaluation. Calibration (CORTEX) uses temperature scaling
@@ -433,7 +433,7 @@ export default function ResearchPage() {
               traceability, a user-facing reliability report, and an optional calibration/routing
               extension.
             </p>
-            <ul className="list-disc list-inside space-y-1 text-slate-700 leading-[1.75]">
+            <ul className="list-disc list-inside space-y-1 leading-[1.75]" style={{ color: 'var(--text-primary)' }}>
               <li>Retrieval-augmented generation (Lewis et al.) and dense retrieval for open-domain QA.</li>
               <li>Programmatic verification of arithmetic and symbolic math in LLM outputs.</li>
               <li>LLM-as-judge for candidate selection (e.g. Zheng et al.).</li>
@@ -442,10 +442,10 @@ export default function ResearchPage() {
           </ResearchSection>
         </article>
 
-        <footer className="mt-20 pt-8 border-t border-slate-200 text-sm text-slate-500 space-y-2">
+        <footer className="mt-20 pt-8 text-sm space-y-2" style={{ borderTop: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
           <p className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <span className="font-medium text-slate-600">OpenPatch</span>
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">v1</span>
+            <span className="font-medium" style={{ color: 'var(--text-primary)' }}>OpenPatch</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>v1</span>
           </p>
           <p>
             For implementation details and trace inspection, see{' '}
@@ -456,7 +456,7 @@ export default function ResearchPage() {
             <Link href="/evals" className="text-[var(--accent-muted)] hover:text-[var(--accent)] font-medium">
               Eval suite
             </Link>
-            , and the <code className="text-slate-600 bg-slate-100 px-1">evals/</code> and CORTEX harnesses in the repository. For publication-scale evaluation (GSM8K, n ≈ 1319), see <code className="text-slate-600 bg-slate-100 px-1">docs/TMLR_SUBMISSION_READINESS.md</code>.
+            , and the <code className="research-code">evals/</code> and CORTEX harnesses in the repository. For publication-scale evaluation (GSM8K, n ≈ 1319), see <code className="research-code">docs/TMLR_SUBMISSION_READINESS.md</code>.
           </p>
         </footer>
       </div>
