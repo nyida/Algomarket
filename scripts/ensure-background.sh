@@ -14,8 +14,11 @@ for f in scraper.py scraper_kalshi.py; do
 done
 
 if ! pgrep -f scraper_kalshi.py >/dev/null 2>&1; then
-  if launchctl print "gui/${UID_NUM}/com.arbwhale.kalshi-live" &>/dev/null; then
+  if launchctl print "gui/${UID_NUM}/com.algomarket.kalshi-live" &>/dev/null; then
     echo "[algomarket] Restarting Kalshi launchd job..."
+    launchctl kickstart -k "gui/${UID_NUM}/com.algomarket.kalshi-live" 2>/dev/null || true
+  elif launchctl print "gui/${UID_NUM}/com.arbwhale.kalshi-live" &>/dev/null; then
+    echo "[algomarket] Restarting legacy Kalshi launchd job..."
     launchctl kickstart -k "gui/${UID_NUM}/com.arbwhale.kalshi-live" 2>/dev/null || true
   else
     echo "[algomarket] Starting Kalshi scraper in background..."
@@ -27,7 +30,7 @@ else
   echo "[algomarket] Kalshi scraper already running"
 fi
 
-if launchctl print "gui/${UID_NUM}/com.arbwhale.scraper" &>/dev/null; then
+if launchctl print "gui/${UID_NUM}/com.algomarket.scraper" &>/dev/null || launchctl print "gui/${UID_NUM}/com.arbwhale.scraper" &>/dev/null; then
   echo "[algomarket] Batch scraper launchd active (every 30 min)"
 else
   echo "[algomarket] Batch launchd not installed — run: npm run scrape:install:all"

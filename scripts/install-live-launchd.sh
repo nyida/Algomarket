@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PLIST_NAME="com.arbwhale.kalshi-live"
+PLIST_NAME="com.algomarket.kalshi-live"
 PLIST_PATH="$HOME/Library/LaunchAgents/${PLIST_NAME}.plist"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SCRAPER_DIR="${WHALE_SCRAPER_DIR:-$HOME/Desktop/PolymarketAnalysis}"
@@ -35,6 +35,7 @@ cat > "$PLIST_PATH" <<EOF
 EOF
 
 launchctl bootout "gui/$(id -u)/${PLIST_NAME}" 2>/dev/null || true
+launchctl bootout "gui/$(id -u)/com.arbwhale.kalshi-live" 2>/dev/null || true
 launchctl bootstrap "gui/$(id -u)" "$PLIST_PATH"
 launchctl enable "gui/$(id -u)/${PLIST_NAME}"
 launchctl kickstart -k "gui/$(id -u)/${PLIST_NAME}"
