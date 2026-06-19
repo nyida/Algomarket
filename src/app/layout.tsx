@@ -1,8 +1,15 @@
 import type { Metadata } from 'next';
-import { Source_Serif_4, Source_Sans_3 } from 'next/font/google';
-import 'katex/dist/katex.min.css';
+import { Source_Serif_4, Source_Sans_3, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { Nav } from '@/components/Nav';
+import { QueryProvider } from '@/components/providers/QueryProvider';
+import { AppStoreProvider } from '@/context/AppStore';
+import { DataFeedBar } from '@/components/whale/DataFeedBar';
+import { SearchBar } from '@/components/whale/SearchBar';
+import { SpreadHistoryRecorder } from '@/components/whale/SpreadHistoryRecorder';
+import { PriceStreamProvider } from '@/hooks/useWebSocket';
+import { SpreadModalProvider } from '@/context/SpreadModalContext';
+import { AppFooter } from '@/components/AppFooter';
 
 const sourceSerif = Source_Serif_4({
   subsets: ['latin'],
@@ -16,10 +23,19 @@ const sourceSans = Source_Sans_3({
   display: 'swap',
 });
 
+const jetbrains = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
-  title: 'OpenPatch',
-  description: 'Higher correctness via multi-model orchestration and verification',
-  icons: { icon: '/logo.png', apple: '/logo.png' },
+  title: 'Algomarket',
+  description: 'Cross-venue prediction market analytics — Kalshi & Polymarket',
+  icons: {
+    icon: '/logo.png',
+    apple: '/logo.png',
+  },
 };
 
 export default function RootLayout({
@@ -28,12 +44,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${sourceSerif.variable} ${sourceSans.variable}`}>
-      <body className="min-h-screen flex flex-col font-sans antialiased" style={{ color: 'var(--text-primary)', background: 'var(--bg-app)' }}>
-        <Nav />
-        <main className="flex-1 w-full px-6 overflow-y-auto overflow-x-hidden scroll-smooth">
-          {children}
-        </main>
+    <html lang="en" className={`${sourceSerif.variable} ${sourceSans.variable} ${jetbrains.variable}`}>
+      <body className="min-h-screen flex flex-col font-sans antialiased">
+        <div className="app-bg" aria-hidden />
+        <QueryProvider>
+          <AppStoreProvider>
+            <SpreadModalProvider>
+              <Nav />
+              <DataFeedBar />
+              <SearchBar />
+              <SpreadHistoryRecorder />
+              <PriceStreamProvider />
+              <main className="flex-1 w-full relative z-[1]">{children}</main>
+              <AppFooter />
+            </SpreadModalProvider>
+          </AppStoreProvider>
+        </QueryProvider>
       </body>
     </html>
   );

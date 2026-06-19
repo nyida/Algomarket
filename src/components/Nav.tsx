@@ -1,81 +1,133 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { useRef, useState, useLayoutEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { NavAuth } from './NavAuth';
+import { Menu, X } from 'lucide-react';
+import { useScrapeStatus } from '@/lib/whale/useScrapeStatus';
+import { useWebSocket } from '@/hooks/useWebSocket';
+
+const HIGHLIGHT_SPRING = { type: 'spring' as const, stiffness: 420, damping: 34, mass: 0.85 };
 
 const links = [
-  { href: '/', label: 'Query' },
-  { href: '/chats', label: 'Conversations' },
-  { href: '/research', label: 'Methodology' },
-  { href: '/runs', label: 'Traces' },
-  { href: '/settings', label: 'Settings' },
+  { href: '/', label: 'Dashboard', title: 'Polymarket whale holdings snapshot' },
+  { href: '/arbs', label: 'Arbs', title: 'Cross-venue arbitrage scanner' },
+  { href: '/screener', label: 'Screener', title: 'Market screener — Kalshi & Polymarket' },
+  { href: '/live', label: 'Live', title: 'Whale tracking — Polymarket + Kalshi large fills' },
+  { href: '/traders', label: 'Traders', title: 'Polymarket whale leaderboard' },
+  { href: '/markets', label: 'Whales', title: 'Markets by whale notional' },
+  { href: '/profile', label: 'Profile', title: 'Wallet positions and history' },
 ];
+
+function isActive(pathname: string, href: string) {
+  if (href === '/') return pathname === '/';
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function NavLinkItem({
+  href,
+  label,
+  title,
+  active,
+  layoutId,
+  onClick,
+}: {
+  href: string;
+  label: string;
+  title?: string;
+  active: boolean;
+  layoutId: string;
+  onClick?: () => void;
+}) {
+  return (
+    <Link href={href} className="nav-link" data-active={active} title={title} onClick={onClick}>
+      {active && (
+        <motion.span
+          layoutId={layoutId}
+          className="nav-slide-highlight"
+          transition={HIGHLIGHT_SPRING}
+          aria-hidden
+        />
+      )}
+      <span className="nav-slide-label">{label}</span>
+    </Link>
+  );
+}
 
 export function Nav() {
   const pathname = usePathname();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const linkRefs = useRef<(HTMLAnchorElement | null)[]>([]);
-  const activeIndex = links.findIndex((l) => l.href === pathname);
-  const [pill, setPill] = useState({ left: 0, width: 0 });
-
-  useLayoutEffect(() => {
-    const container = containerRef.current;
-    const el = activeIndex >= 0 ? linkRefs.current[activeIndex] : null;
-    if (container && el) {
-      const cr = container.getBoundingClientRect();
-      const er = el.getBoundingClientRect();
-      setPill({ left: er.left - cr.left, width: er.width });
-    }
-  }, [activeIndex, pathname]);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { status } = useScrapeStatus(15000);
+  const { live: wsLive } = useWebSocket();
+  const feedFresh = status?.live_feed_fresh ?? false;
 
   return (
-    <nav className="sticky top-0 z-10" style={{ background: 'var(--bg-app)' }}>
-      <div className="container mx-auto px-4 max-w-6xl">
-        <div className="flex items-center justify-between h-14">
-            <Link
-            href="/"
-            className="font-serif font-semibold text-[var(--text-primary)] text-[15px] tracking-tight flex items-center gap-2.5"
-          >
-            <span className="inline-flex items-center justify-center w-8 h-8 overflow-hidden shrink-0">
-              <Image src="/logo.png" alt="OpenPatch" width={32} height={32} className="object-contain" />
-            </span>
-            OpenPatch
-            <span className="text-[10px] font-medium uppercase tracking-wider text-[var(--text-muted)] bg-[var(--bg-subtle)] px-1.5 py-0.5 rounded-none">
-              v1
+    <header className="nav-header sticky top-0 z-30">
+      <div className="shell !py-0 !max-w-[1280px]">
+        <div className="flex items-center justify-between h-11 gap-4">
+          <Link href="/" className="flex items-center gap-2 shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.png"
+              alt="Algomarket"
+              className="h-6 w-6 rounded object-cover shrink-0"
+              width={24}
+              height={24}
+            />
+            <span className="text-sm font-medium tracking-tight" style={{ color: 'var(--text)' }}>
+              Algomarket
             </span>
           </Link>
-          <div ref={containerRef} className="flex gap-0.5 relative">
-            {activeIndex >= 0 && pill.width > 0 && (
-              <motion.span
-                className="absolute top-0 bottom-0 rounded-none bg-[var(--accent)]/5"
-                initial={false}
-                animate={{ left: pill.left, width: pill.width }}
-                transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+
+          <nav className="hidden md:flex items-center gap-0.5">
+            {links.map(({ href, label, title }) => (
+              <NavLinkItem
+                key={href}
+                href={href}
+                label={label}
+                title={title}
+                active={isActive(pathname, href)}
+                layoutId="main-nav-highlight"
               />
-            )}
-            {links.map(({ href, label }, i) => {
-              const isActive = pathname === href;
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  ref={(el) => { linkRefs.current[i] = el; }}
-                  className={`relative z-[1] px-3.5 py-2 rounded-none text-[13px] font-medium transition-colors focus:outline-none focus-visible:outline-none ${
-                    isActive ? 'text-[var(--accent)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  {label}
-                </Link>
-              );
-            })}
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-2">
+            <span
+              className="hidden sm:inline text-[10px] uppercase tracking-wider data-status-line"
+              style={{ color: wsLive ? 'var(--mint)' : feedFresh ? '#ffffff' : 'rgba(255,255,255,0.65)' }}
+              title={wsLive ? 'WebSocket price stream active' : feedFresh ? 'Live feed updating' : 'Live feed catching up'}
+            >
+              {wsLive ? 'WS live' : feedFresh ? 'Live' : 'Syncing'}
+            </span>
+            <button
+              type="button"
+              className="btn btn-ghost !p-1.5 md:hidden"
+              onClick={() => setMobileOpen((v) => !v)}
+              aria-label="Menu"
+            >
+              {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </button>
           </div>
-          <NavAuth />
         </div>
+
+        {mobileOpen && (
+          <nav className="md:hidden flex flex-wrap gap-1 pb-2 pt-2 mt-1" style={{ background: 'rgba(255,255,255,0.03)' }}>
+            {links.map(({ href, label, title }) => (
+              <NavLinkItem
+                key={href}
+                href={href}
+                label={label}
+                title={title}
+                active={isActive(pathname, href)}
+                layoutId="main-nav-mobile-highlight"
+                onClick={() => setMobileOpen(false)}
+              />
+            ))}
+          </nav>
+        )}
       </div>
-    </nav>
+    </header>
   );
 }
