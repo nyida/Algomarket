@@ -1,5 +1,6 @@
 node_modules
 .next
+whale_data.db
 .env
 .env.local
 .env.*

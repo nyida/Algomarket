@@ -13,10 +13,10 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Data
 
-Whale holdings and trade history are read from a local SQLite database (default: `~/Desktop/PolymarketAnalysis/whale_data.db`). Override with:
+Whale holdings and trade history are read from `./whale_data.db` in the project root. Override with:
 
 ```bash
-export WHALE_DB_PATH=/path/to/whale_data.db
+export WHALE_DB_PATH=./whale_data.db
 ```
 
 Start background scrapers:
