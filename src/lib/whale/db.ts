@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { ensureSchema } from './migrate';
 
-const DEFAULT_DB = path.resolve('./whale_data.db');
+const DEFAULT_DB = path.resolve('./public/whale_data.db');
 
 const DB_PATH = process.env.WHALE_DB_PATH
   ? path.resolve(process.env.WHALE_DB_PATH)
