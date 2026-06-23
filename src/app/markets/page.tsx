@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ContractCell } from '@/components/whale/PlatformTag';
+import { marketDetailPath } from '@/lib/whale/marketRoutes';
 import { fmtUsd } from '@/lib/whale/utils';
 import { usePoll } from '@/lib/whale/usePoll';
 import {
@@ -109,10 +110,10 @@ export default function MarketsPage() {
                   </td>
                   <td className="text-right">
                     <Link
-                      href={`/markets/detail?market=${encodeURIComponent(m.market_title)}&platform=${encodeURIComponent(m.platform)}`}
+                      href={marketDetailPath(m.market_title, m.platform)}
                       className="btn btn-ghost"
                     >
-                      Traders
+                      View
                     </Link>
                   </td>
                 </tr>

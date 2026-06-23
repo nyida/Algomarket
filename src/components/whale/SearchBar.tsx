@@ -9,6 +9,7 @@ import { useUnifiedSearch } from '@/lib/whale/hooks';
 import { fmtUsd, platformShort } from '@/lib/whale/utils';
 import { PlatformTag } from '@/components/whale/PlatformTag';
 import type { UnifiedMarket } from '@/services/types';
+import { marketDetailPath } from '@/lib/whale/marketRoutes';
 
 const VENUE_OPTIONS = [
   { id: 'all', label: 'All venues' },
@@ -16,16 +17,13 @@ const VENUE_OPTIONS = [
   { id: 'kalshi', label: 'Kalshi' },
 ];
 
-function marketDetailPath(r: UnifiedMarket): string {
-  const params = new URLSearchParams({
-    title: r.title,
-    venue: r.venue,
-    price: String(r.probability),
-    volume: String(r.volume_24h ?? r.volume),
+function marketDetailPathFromSearch(r: UnifiedMarket): string {
+  return marketDetailPath(r.title, r.venue, {
+    price: r.probability,
+    volume: r.volume_24h ?? r.volume,
     url: r.external_url,
+    event: r.event_title,
   });
-  if (r.event_title) params.set('event', r.event_title);
-  return `/market?${params}`;
 }
 
 function keepInputFocus(e: React.MouseEvent) {
@@ -67,7 +65,7 @@ export function SearchBar() {
     setFocused(false);
     setQ('');
     setDebounced('');
-    router.push(marketDetailPath(r));
+    router.push(marketDetailPathFromSearch(r));
   }
 
   return (

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { NetROIBadge } from '@/components/whale/NetROIBadge';
 import { SpreadSparkline } from '@/components/whale/SpreadSparkline';
 import { ArbAlertsBar } from '@/components/whale/ArbAlertsBar';
@@ -15,6 +16,7 @@ import {
 } from '@/components/whale/Shell';
 import { LiveRefreshNote } from '@/components/whale/LiveRefreshNote';
 import { useArbitrageMap } from '@/lib/whale/hooks';
+import { marketDetailPath } from '@/lib/whale/marketRoutes';
 import { fmtRelativeTime } from '@/lib/whale/utils';
 
 const PAGE_SIZE = 40;
@@ -82,8 +84,16 @@ export default function ArbScannerPage() {
                   <tr key={spread.id}>
                     <td className="font-mono tabular-nums">{i + 1}</td>
                     <td className="col-market">
-                      <div className="market-title leading-snug">{spread.poly_title}</div>
-                      <div className="text-[10px] mt-0.5 opacity-50">↔ {spread.kalshi_title}</div>
+                      <Link
+                        href={marketDetailPath(spread.poly_title, 'polymarket', {
+                          price: spread.poly_price,
+                          url: spread.poly_url,
+                        })}
+                        className="block hover:underline"
+                      >
+                        <div className="market-title leading-snug">{spread.poly_title}</div>
+                        <div className="text-[10px] mt-0.5 opacity-50">↔ {spread.kalshi_title}</div>
+                      </Link>
                     </td>
                     <td className="text-right font-mono tabular-nums">{(spread.poly_price * 100).toFixed(1)}%</td>
                     <td className="text-right font-mono tabular-nums">{(spread.kalshi_price * 100).toFixed(1)}%</td>

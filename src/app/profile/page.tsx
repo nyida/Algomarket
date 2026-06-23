@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ExternalLink, Copy, Check } from 'lucide-react';
 import { ContractCell } from '@/components/whale/PlatformTag';
+import { marketDetailPath } from '@/lib/whale/marketRoutes';
 import { ProfilePnLChart } from '@/components/whale/profile/ProfilePnLChart';
 import { ProfileSidebar } from '@/components/whale/profile/ProfileSidebar';
 import type {
@@ -280,7 +281,13 @@ function ProfileContent() {
                         {stats.positions.map((p) => (
                           <tr key={`${p.platform}-${p.market_title}-${p.outcome}`}>
                             <td className="col-market">
-                              <ContractCell title={p.market_title} platform={p.platform} />
+                              <ContractCell
+                                title={p.market_title}
+                                platform={p.platform}
+                                href={marketDetailPath(p.market_title, p.platform, {
+                                  price: p.current_price,
+                                })}
+                              />
                             </td>
                             <td style={{ color: p.outcome.toLowerCase().includes('yes') ? 'var(--mint)' : 'var(--rose)' }}>
                               {p.outcome}
@@ -331,8 +338,15 @@ function ProfileContent() {
                                 </span>
                               </td>
                               <td className="col-market">
-                                <div className="leading-snug">{t.market_title}</div>
-                                <div className="text-[10px] opacity-50 mt-0.5">{t.outcome}</div>
+                                <Link
+                                  href={marketDetailPath(t.market_title, t.platform, {
+                                    price: t.price,
+                                  })}
+                                  className="block hover:underline"
+                                >
+                                  <div className="leading-snug">{t.market_title}</div>
+                                  <div className="text-[10px] opacity-50 mt-0.5">{t.outcome}</div>
+                                </Link>
                               </td>
                               <td className="text-right font-mono tabular-nums">{fmtUsd(t.size * t.price)}</td>
                             </tr>
@@ -365,7 +379,14 @@ function ProfileContent() {
                                 {fmtRelativeTime(a.timestamp)}
                               </td>
                               <td className="font-mono text-[10px] uppercase opacity-80">{a.event_type}</td>
-                              <td className="col-market leading-snug">{a.market_title}</td>
+                              <td className="col-market">
+                                <Link
+                                  href={marketDetailPath(a.market_title, 'polymarket')}
+                                  className="hover:underline leading-snug"
+                                >
+                                  {a.market_title}
+                                </Link>
+                              </td>
                               <td className="text-right font-mono tabular-nums">{fmtUsd(a.size)}</td>
                             </tr>
                           ))}

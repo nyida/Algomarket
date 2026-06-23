@@ -10,6 +10,7 @@ import { NetROIBadge } from '@/components/whale/NetROIBadge';
 import { PaperTradeModal } from '@/components/whale/PaperTradeModal';
 import { SpreadSparkline } from '@/components/whale/SpreadSparkline';
 import { inferMarketCategory } from '@/lib/whale/categories';
+import { marketDetailPath } from '@/lib/whale/marketRoutes';
 import type { ArbitrageSpread } from '@/services/types';
 import { fmtUsd, isPastMarket, shortWallet } from '@/lib/whale/utils';
 
@@ -101,7 +102,14 @@ export const MarketRow = memo(function MarketRow({
       <tr className="row-main" data-open={open} onClick={toggle}>
         <td className="col-rank font-mono tabular-nums">{rank}</td>
         <td className="col-market">
-          <ContractCell title={market.name} platform={market.platform} />
+          <ContractCell
+            title={market.name}
+            platform={market.platform}
+            href={marketDetailPath(cleanName, market.platform, {
+              price: market.market_price,
+              url: market.external_url,
+            })}
+          />
         </td>
         <td className="col-cat">
           <span className="cat-tag">{category}</span>

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { platformLabel, platformShort, tradeKindLabel } from '@/lib/whale/utils';
 
 export function PlatformTag({
@@ -31,18 +32,34 @@ export function TradeKindTag({ tradeKind }: { tradeKind: string }) {
 export function ContractCell({
   title,
   platform,
+  href,
 }: {
   title: string;
   platform: string;
+  href?: string;
 }) {
-  return (
-    <div className="contract-cell">
+  const inner = (
+    <>
       <span className="venue-pill" title={platformLabel(platform)}>
         {platformShort(platform)}
       </span>
       <span className="market-title">{title}</span>
-    </div>
+    </>
   );
+
+  if (href) {
+    return (
+      <Link
+        href={href}
+        className="contract-cell contract-cell-link hover:underline"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {inner}
+      </Link>
+    );
+  }
+
+  return <div className="contract-cell">{inner}</div>;
 }
 
 /** Card / panel layout: venue pill inline with title. */

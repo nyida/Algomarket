@@ -1,7 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import type { ArbitrageSpread } from '@/services/types';
 import { NetROIBadge } from '@/components/whale/NetROIBadge';
+import { marketDetailPath } from '@/lib/whale/marketRoutes';
 import { formatNetROI, netROITooltip } from '@/utils/arbMath';
 
 export function NetProfitCell({ spread }: { spread: ArbitrageSpread }) {
@@ -19,8 +21,16 @@ export function ArbitrageRow({ spread }: { spread: ArbitrageSpread }) {
         <span className="cat-tag">Arb</span>
       </td>
       <td className="col-market">
-        <div className="market-title leading-snug">{spread.poly_title}</div>
-        <div className="text-[10px] mt-0.5 opacity-50">↔ {spread.kalshi_title}</div>
+        <Link
+          href={marketDetailPath(spread.poly_title, 'polymarket', {
+            price: spread.poly_price,
+            url: spread.poly_url,
+          })}
+          className="block hover:underline"
+        >
+          <div className="market-title leading-snug">{spread.poly_title}</div>
+          <div className="text-[10px] mt-0.5 opacity-50">↔ {spread.kalshi_title}</div>
+        </Link>
       </td>
       <td className="text-right font-mono tabular-nums">{(spread.poly_price * 100).toFixed(1)}%</td>
       <td className="text-right font-mono tabular-nums">{(spread.kalshi_price * 100).toFixed(1)}%</td>
