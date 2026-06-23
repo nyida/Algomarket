@@ -48,8 +48,20 @@ export function getAllMarkets() {
     .all() as { market_title: string; platform: string; whale_count: number; total_usd: number }[];
 }
 
+function marketTitleVariants(marketTitle: string): string[] {
+  const clean = marketTitle.replace(/\s*\[(YES|NO)\]\s*$/i, '').trim();
+  const variants = new Set<string>([marketTitle.trim(), clean]);
+  if (clean) {
+    variants.add(`${clean} [YES]`);
+    variants.add(`${clean} [NO]`);
+  }
+  return [...variants];
+}
+
 export function getMarketTraders(marketTitle: string, platform = 'polymarket') {
   const db = getDb();
+  const titles = marketTitleVariants(marketTitle);
+  const placeholders = titles.map(() => '?').join(', ');
   const rows = db
     .prepare(`
       SELECT
@@ -64,10 +76,10 @@ export function getMarketTraders(marketTitle: string, platform = 'polymarket') {
         (p.shares * (p.current_price - p.avg_price)) as unrealized_pnl
       FROM positions p
       LEFT JOIN traders t ON p.wallet = t.wallet
-      WHERE p.market_title = ? AND COALESCE(p.platform, 'polymarket') = ?
+      WHERE p.market_title IN (${placeholders}) AND COALESCE(p.platform, 'polymarket') = ?
       ORDER BY p.usd_value DESC
     `)
-    .all(marketTitle, platform) as Record<string, unknown>[];
+    .all(...titles, platform) as Record<string, unknown>[];
 
   return rows.map((row) => ({
     ...row,

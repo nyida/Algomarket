@@ -15,7 +15,7 @@ import {
   TableShell,
   SkeletonList,
 } from '@/components/whale/Shell';
-import { decodeMarketId } from '@/lib/whale/marketRoutes';
+import { resolveMarketIdentity } from '@/lib/whale/marketRoutes';
 import { useArbitrageMap } from '@/lib/whale/hooks';
 import { lookupSpread } from '@/services/arbitrage.utils';
 import { formatNetROI } from '@/utils/arbMath';
@@ -42,7 +42,18 @@ function MarketDetailContent() {
   const params = useParams();
   const sp = useSearchParams();
   const marketId = typeof params['market-id'] === 'string' ? params['market-id'] : '';
-  const decoded = useMemo(() => decodeMarketId(marketId), [marketId]);
+  const titleParam = sp.get('title');
+  const platformParam = sp.get('platform');
+  const venueParam = sp.get('venue');
+  const decoded = useMemo(
+    () =>
+      resolveMarketIdentity(marketId, {
+        title: titleParam,
+        platform: platformParam,
+        venue: venueParam,
+      }),
+    [marketId, titleParam, platformParam, venueParam],
+  );
 
   const [positions, setPositions] = useState<Position[]>([]);
   const [positionsLoading, setPositionsLoading] = useState(true);

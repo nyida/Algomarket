@@ -2,6 +2,7 @@
 
 import { Fragment, memo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ExternalLink, Wallet } from 'lucide-react';
 import { DualBar, edgeFromPct } from '@/components/whale/SentimentCompare';
@@ -59,6 +60,7 @@ export const MarketRow = memo(function MarketRow({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paperOpen, setPaperOpen] = useState(false);
+  const router = useRouter();
 
   const yesPct = parseYesPct(market.whale_sentiment);
   const marketPct = Math.round(market.market_price * 1000) / 10;
@@ -70,7 +72,19 @@ export const MarketRow = memo(function MarketRow({
     ? `https://polymarket.com/search?q=${encodeURIComponent(market.name)}`
     : market.external_url;
 
-  async function toggle() {
+  const detailHref = marketDetailPath(cleanName, market.platform, {
+    price: market.market_price,
+    url: market.external_url,
+  });
+
+  function handleRowClick(e: React.MouseEvent) {
+    const target = e.target as HTMLElement;
+    if (target.closest('a, button, [data-no-row-nav]')) return;
+    router.push(detailHref);
+  }
+
+  async function toggle(e: React.MouseEvent) {
+    e.stopPropagation();
     if (open) {
       setOpen(false);
       return;
@@ -99,16 +113,13 @@ export const MarketRow = memo(function MarketRow({
 
   return (
     <Fragment>
-      <tr className="row-main" data-open={open} onClick={toggle}>
+      <tr className="row-main" data-open={open} onClick={handleRowClick}>
         <td className="col-rank font-mono tabular-nums">{rank}</td>
         <td className="col-market">
           <ContractCell
             title={market.name}
             platform={market.platform}
-            href={marketDetailPath(cleanName, market.platform, {
-              price: market.market_price,
-              url: market.external_url,
-            })}
+            href={detailHref}
           />
         </td>
         <td className="col-cat">
@@ -155,7 +166,7 @@ export const MarketRow = memo(function MarketRow({
                 <ExternalLink className="w-3 h-3" />
               </a>
             )}
-            <button type="button" className="icon-btn" disabled={loading} aria-expanded={open}>
+            <button type="button" className="icon-btn" disabled={loading} aria-expanded={open} onClick={toggle}>
               <ChevronDown className={`w-3.5 h-3.5 chevron ${open ? 'open' : ''}`} />
             </button>
           </div>

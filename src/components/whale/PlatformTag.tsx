@@ -53,6 +53,7 @@ export function ContractCell({
         href={href}
         className="contract-cell contract-cell-link hover:underline"
         onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
       >
         {inner}
       </Link>
