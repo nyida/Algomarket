@@ -2,6 +2,7 @@
 const nextConfig = {
   experimental: {
     serverComponentsExternalPackages: ['better-sqlite3'],
+    optimizePackageImports: ['lucide-react', 'recharts'],
   },
 };
 

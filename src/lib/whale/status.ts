@@ -82,22 +82,6 @@ export function syncMetadataFromDb(db: ReturnType<typeof getDb>) {
   const trader_count = liveCount(db, 'SELECT COUNT(*) AS c FROM traders');
   const position_count = liveCount(db, 'SELECT COUNT(*) AS c FROM positions');
   const market_count = liveCount(db, 'SELECT COUNT(DISTINCT market_title) AS c FROM positions');
-  const now = Math.floor(Date.now() / 1000);
-  const stmt = db.prepare('INSERT OR REPLACE INTO scrape_metadata (key, value) VALUES (?, ?)');
-  stmt.run('trader_count', String(trader_count));
-  stmt.run('position_count', String(position_count));
-  stmt.run('market_count', String(market_count));
-  if (trader_count > 0) {
-    stmt.run('last_scrape_at', String(now));
-  }
-}
-
-export function getScrapeStatus(): ScrapeStatus {
-  const db = getDb();
-
-  const trader_count = liveCount(db, 'SELECT COUNT(*) AS c FROM traders');
-  const position_count = liveCount(db, 'SELECT COUNT(*) AS c FROM positions');
-  const market_count = liveCount(db, 'SELECT COUNT(DISTINCT market_title) AS c FROM positions');
   const contract_count = liveCount(
     db,
     `SELECT COUNT(*) AS c FROM (
@@ -106,6 +90,78 @@ export function getScrapeStatus(): ScrapeStatus {
        GROUP BY market_title, COALESCE(platform, 'polymarket')
      )`,
   );
+  const all_trader_count = liveCount(db, 'SELECT COUNT(*) AS c FROM all_traders');
+
+  let live_trade_count = 0;
+  let live_polymarket_trades = 0;
+  let live_kalshi_trades = 0;
+  try {
+    const liveRows = db
+      .prepare(`
+        SELECT COALESCE(platform, 'polymarket') AS platform, COUNT(*) AS c
+        FROM trades
+        ${LIVE_TRADE_FILTER}
+        GROUP BY COALESCE(platform, 'polymarket')
+      `)
+      .all(LIVE_MIN_USD) as { platform: string; c: number }[];
+    for (const row of liveRows) {
+      live_trade_count += row.c;
+      if (row.platform === 'polymarket') live_polymarket_trades = row.c;
+      if (row.platform === 'kalshi') live_kalshi_trades = row.c;
+    }
+  } catch {
+    /* no trades */
+  }
+
+  const platforms = getAvailablePlatforms();
+  const now = Math.floor(Date.now() / 1000);
+  const stmt = db.prepare('INSERT OR REPLACE INTO scrape_metadata (key, value) VALUES (?, ?)');
+  stmt.run('trader_count', String(trader_count));
+  stmt.run('position_count', String(position_count));
+  stmt.run('market_count', String(market_count));
+  stmt.run('contract_count', String(contract_count));
+  stmt.run('all_trader_count', String(all_trader_count));
+  stmt.run('live_trade_count', String(live_trade_count));
+  stmt.run('live_polymarket_trades', String(live_polymarket_trades));
+  stmt.run('live_kalshi_trades', String(live_kalshi_trades));
+  stmt.run('platforms_json', JSON.stringify(platforms));
+  stmt.run('counts_synced_at', String(now));
+  if (trader_count > 0) {
+    stmt.run('last_scrape_at', String(now));
+  }
+}
+
+function metaInt(db: ReturnType<typeof getDb>, key: string): number | null {
+  const raw = metaValue(db, key);
+  if (!raw) return null;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+export function getScrapeStatus(): ScrapeStatus {
+  const db = getDb();
+  const countsSyncedAt = metaInt(db, 'counts_synced_at');
+  const countsFresh = countsSyncedAt != null && Date.now() / 1000 - countsSyncedAt < 1800;
+
+  const trader_count =
+    (countsFresh ? metaInt(db, 'trader_count') : null) ??
+    liveCount(db, 'SELECT COUNT(*) AS c FROM traders');
+  const position_count =
+    (countsFresh ? metaInt(db, 'position_count') : null) ??
+    liveCount(db, 'SELECT COUNT(*) AS c FROM positions');
+  const market_count =
+    (countsFresh ? metaInt(db, 'market_count') : null) ??
+    liveCount(db, 'SELECT COUNT(DISTINCT market_title) AS c FROM positions');
+  const contract_count =
+    (countsFresh ? metaInt(db, 'contract_count') : null) ??
+    liveCount(
+      db,
+      `SELECT COUNT(*) AS c FROM (
+         SELECT market_title, COALESCE(platform, 'polymarket') AS platform
+         FROM positions
+         GROUP BY market_title, COALESCE(platform, 'polymarket')
+       )`,
+    );
 
   const scrapeStatusRaw = metaValue(db, 'scrape_status');
   const whaleTargetMeta = parseInt(metaValue(db, 'whale_target') ?? '0', 10);
@@ -145,27 +201,49 @@ export function getScrapeStatus(): ScrapeStatus {
     : Number.POSITIVE_INFINITY;
   const live_feed_fresh = liveAgeMinutes <= 5;
 
-  let live_trade_count = 0;
-  let live_polymarket_trades = 0;
-  let live_kalshi_trades = 0;
-  try {
-    const liveRows = db
-      .prepare(`
-        SELECT COALESCE(platform, 'polymarket') AS platform, COUNT(*) AS c
-        FROM trades
-        ${LIVE_TRADE_FILTER}
-        GROUP BY COALESCE(platform, 'polymarket')
-      `)
-      .all(LIVE_MIN_USD) as { platform: string; c: number }[];
-    for (const row of liveRows) {
-      live_trade_count += row.c;
-      if (row.platform === 'polymarket') live_polymarket_trades = row.c;
-      if (row.platform === 'kalshi') live_kalshi_trades = row.c;
+  let live_trade_count =
+    (countsFresh ? metaInt(db, 'live_trade_count') : null) ?? 0;
+  let live_polymarket_trades =
+    (countsFresh ? metaInt(db, 'live_polymarket_trades') : null) ?? 0;
+  let live_kalshi_trades =
+    (countsFresh ? metaInt(db, 'live_kalshi_trades') : null) ?? 0;
+  if (!countsFresh) {
+    try {
+      const liveRows = db
+        .prepare(`
+          SELECT COALESCE(platform, 'polymarket') AS platform, COUNT(*) AS c
+          FROM trades
+          ${LIVE_TRADE_FILTER}
+          GROUP BY COALESCE(platform, 'polymarket')
+        `)
+        .all(LIVE_MIN_USD) as { platform: string; c: number }[];
+      live_trade_count = 0;
+      live_polymarket_trades = 0;
+      live_kalshi_trades = 0;
+      for (const row of liveRows) {
+        live_trade_count += row.c;
+        if (row.platform === 'polymarket') live_polymarket_trades = row.c;
+        if (row.platform === 'kalshi') live_kalshi_trades = row.c;
+      }
+    } catch {
+      /* no trades table */
     }
-  } catch {
-    /* no trades table */
   }
-  const all_trader_count = liveCount(db, 'SELECT COUNT(*) AS c FROM all_traders');
+  const all_trader_count =
+    (countsFresh ? metaInt(db, 'all_trader_count') : null) ??
+    liveCount(db, 'SELECT COUNT(*) AS c FROM all_traders');
+
+  let platforms: string[];
+  const platformsJson = metaValue(db, 'platforms_json');
+  if (platformsJson) {
+    try {
+      platforms = JSON.parse(platformsJson) as string[];
+    } catch {
+      platforms = getAvailablePlatforms();
+    }
+  } else {
+    platforms = getAvailablePlatforms();
+  }
 
   return {
     last_scrape_at,
@@ -181,7 +259,7 @@ export function getScrapeStatus(): ScrapeStatus {
     live_polymarket_trades,
     live_kalshi_trades,
     all_trader_count,
-    platforms: getAvailablePlatforms(),
+    platforms,
     stale: !scrape_in_progress && ageMinutes > STALE_MINUTES,
     stale_threshold_minutes: STALE_MINUTES,
     scrape_in_progress,

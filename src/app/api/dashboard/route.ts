@@ -3,7 +3,7 @@ import type { Platform } from '@/lib/whale/utils';
 import { cachedResponse } from '@/lib/whale/responseCache';
 import { whaleError, whaleJson } from '@/lib/whale/api';
 
-const CACHE_MS = 15_000;
+const CACHE_MS = 30_000;
 
 export async function GET(req: Request) {
   try {

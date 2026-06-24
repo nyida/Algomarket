@@ -64,7 +64,7 @@ function fmtTradeTime(ts: number) {
 }
 
 export default function LivePage() {
-  const { status } = useScrapeStatus(POLL_MS);
+  const { status } = useScrapeStatus();
   const [trades, setTrades] = useState<LiveTrade[]>([]);
   const [total, setTotal] = useState(0);
   const [limit, setLimit] = useState(PAGE_LIMIT);

@@ -32,7 +32,7 @@ export const SpreadSparkline = memo(function SpreadSparkline({
     hydrateMemoryCache(contractId).then(setPoints);
     const id = setInterval(() => {
       setPoints(getClientSpreadHistory(contractId));
-    }, 15_000);
+    }, 60_000);
     return () => clearInterval(id);
   }, [contractId, netCents]);
 

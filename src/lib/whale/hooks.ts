@@ -4,7 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchJson } from '@/lib/whale/fetch';
 import type { ArbitrageSpread, UnifiedMarket } from '@/services/types';
 
-export const LIVE_REFETCH_MS = 10_000;
+export const LIVE_REFETCH_MS = 15_000;
+export const ARB_REFETCH_MS = 120_000;
 
 type UnifiedSearchResponse = { results: UnifiedMarket[]; count: number };
 type ArbitrageResponse = {
@@ -46,7 +47,7 @@ export function useUnifiedSearch(
       return fetchJson<UnifiedSearchResponse>(`/api/unified/search?${params}`, undefined, 30_000);
     },
     enabled: enabled && q.trim().length >= 2,
-    refetchInterval: LIVE_REFETCH_MS,
+    staleTime: 30_000,
     retry: 2,
   });
 }
@@ -58,7 +59,8 @@ export function useArbitrageMap(minSpread = 0) {
       const params = minSpread > 0 ? `?min_spread=${minSpread}` : '';
       return fetchJson<ArbitrageResponse>(`/api/arbitrage${params}`, undefined, 45_000);
     },
-    refetchInterval: LIVE_REFETCH_MS,
+    refetchInterval: ARB_REFETCH_MS,
+    staleTime: 90_000,
     retry: 2,
     retryDelay: 2000,
   });
@@ -72,6 +74,7 @@ export function useLiveWhales(minSize = 500, limit = 100) {
         `/api/live_whales?min_size=${minSize}&limit=${limit}&platform=all`,
       ),
     refetchInterval: LIVE_REFETCH_MS,
+    staleTime: 10_000,
   });
 }
 
@@ -91,6 +94,7 @@ export function useKalshiFlow(hours = 1) {
   return useQuery({
     queryKey: ['kalshi-flow', hours],
     queryFn: () => fetchJson<KalshiFlowResponse>(`/api/kalshi_flow?hours=${hours}&limit=1000`),
-    refetchInterval: LIVE_REFETCH_MS,
+    refetchInterval: 30_000,
+    staleTime: 20_000,
   });
 }

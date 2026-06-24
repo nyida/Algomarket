@@ -1,31 +1,24 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import type { ScrapeStatus } from './status';
 import { fetchJson } from './fetch';
-import { usePoll } from './usePoll';
 
-export function useScrapeStatus(pollMs = 15000) {
-  const [status, setStatus] = useState<ScrapeStatus | null>(null);
-  const [lastFetch, setLastFetch] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
+const DEFAULT_POLL_MS = 30_000;
 
-  const refresh = useCallback(async () => {
-    try {
-      const data = await fetchJson<ScrapeStatus>('/api/status');
-      setStatus(data);
-      setLastFetch(Date.now());
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Status unavailable');
-    }
-  }, []);
+/** Single shared status query — dedupes Nav + DataFeedBar + page pollers. */
+export function useScrapeStatus(pollMs = DEFAULT_POLL_MS) {
+  const q = useQuery({
+    queryKey: ['status'],
+    queryFn: () => fetchJson<ScrapeStatus>('/api/status'),
+    refetchInterval: pollMs,
+    staleTime: Math.max(pollMs - 5_000, 10_000),
+  });
 
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  usePoll(refresh, pollMs);
-
-  return { status, lastFetch, error, refresh };
+  return {
+    status: q.data ?? null,
+    lastFetch: q.dataUpdatedAt > 0 ? q.dataUpdatedAt : null,
+    error: q.error ? (q.error instanceof Error ? q.error.message : 'Status unavailable') : null,
+    refresh: q.refetch,
+  };
 }

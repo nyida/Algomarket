@@ -19,7 +19,7 @@ import {
   StatPill,
 } from '@/components/whale/Shell';
 import { inferMarketCategory, MARKET_CATEGORIES, type MarketCategory } from '@/lib/whale/categories';
-import type { ScrapeStatus } from '@/lib/whale/status';
+import { useScrapeStatus } from '@/lib/whale/useScrapeStatus';
 import { WhaleTicker } from '@/components/whale/WhaleTicker';
 import { fetchJson } from '@/lib/whale/fetch';
 import { useArbitrageMap } from '@/lib/whale/hooks';
@@ -36,7 +36,7 @@ const SECTOR_TABS: { id: MarketCategory | 'all'; label: string }[] = [
 
 export default function DashboardPage() {
   const [markets, setMarkets] = useState<DashboardMarket[]>([]);
-  const [status, setStatus] = useState<ScrapeStatus | null>(null);
+  const { status } = useScrapeStatus();
   const [lastFetch, setLastFetch] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState<'open' | 'archived'>('open');
@@ -49,20 +49,6 @@ export default function DashboardPage() {
   const pollMs = status?.scrape_in_progress ? 5000 : POLL_MS;
   const { data: arbData } = useArbitrageMap();
   const arbMap = arbData?.byPolyTitle ?? {};
-
-  const loadStatus = useCallback(async () => {
-    try {
-      setStatus(await fetchJson<ScrapeStatus>('/api/status'));
-    } catch {
-      /* dashboard still works without status */
-    }
-  }, []);
-
-  useEffect(() => {
-    loadStatus();
-    const id = setInterval(loadStatus, pollMs);
-    return () => clearInterval(id);
-  }, [loadStatus, pollMs]);
 
   const load = useCallback(
     async (silent = false) => {

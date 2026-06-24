@@ -1,18 +1,11 @@
 import path from 'path';
 import { getScrapeStatus } from '@/lib/whale/status';
 import { startBatchScraper, startKalshiScraper, SCRAPE_ENABLED } from '@/lib/whale/scrape-runner';
-import { getArbitragePairs } from '@/services/arbitrage.service';
 import { whaleError, whaleJson } from '@/lib/whale/api';
 
 const PROJECT_ROOT = path.join(process.cwd());
 
-function warmArbitrageCache() {
-  getArbitragePairs(0).catch(() => {});
-}
-
 export async function GET() {
-  warmArbitrageCache();
-
   if (!SCRAPE_ENABLED) {
     try {
       return whaleJson({ ok: true, status: getScrapeStatus(), actions: [] });

@@ -58,7 +58,7 @@ function NavLinkItem({
 export function Nav() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { status } = useScrapeStatus(15000);
+  const { status } = useScrapeStatus();
   const { live: wsLive } = useWebSocket();
   const feedFresh = status?.live_feed_fresh ?? false;
 

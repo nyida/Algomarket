@@ -10,7 +10,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import { fmtUsd } from '@/lib/whale/utils';
 
 export function DataFeedBar() {
-  const { status, lastFetch } = useScrapeStatus(15000);
+  const { status, lastFetch } = useScrapeStatus();
   const { portfolio } = useAppStore();
   const { live: wsLive } = useWebSocket();
   const bootstrapped = useRef(false);

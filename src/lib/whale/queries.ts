@@ -287,9 +287,15 @@ type DashboardRow = {
   market_title: string;
   platform: string;
   outcome: string;
-  wallet: string;
   usd_value: number;
   current_price: number;
+};
+
+type WalletStat = {
+  market_title: string;
+  platform: string;
+  trader_count: number;
+  total_usd: number;
 };
 
 type OutcomeAgg = { total: number; price: number };
@@ -297,29 +303,31 @@ type OutcomeAgg = { total: number; price: number };
 type MarketAgg = {
   title: string;
   platform: string;
-  wallets: Set<string>;
   total_usd: number;
   outcomes: Map<string, OutcomeAgg>;
 };
 
-function buildDashboardFromPositions(rows: DashboardRow[]) {
+function buildDashboardFromAggregates(walletStats: WalletStat[], outcomeRows: DashboardRow[]) {
+  const walletsByKey = new Map<string, WalletStat>();
+  for (const w of walletStats) {
+    walletsByKey.set(`${w.market_title}\0${w.platform}`, w);
+  }
+
   const markets = new Map<string, MarketAgg>();
 
-  for (const row of rows) {
+  for (const row of outcomeRows) {
     const key = `${row.market_title}\0${row.platform}`;
     let agg = markets.get(key);
     if (!agg) {
+      const w = walletsByKey.get(key);
       agg = {
         title: row.market_title,
         platform: row.platform,
-        wallets: new Set(),
-        total_usd: 0,
+        total_usd: w?.total_usd ?? 0,
         outcomes: new Map(),
       };
       markets.set(key, agg);
     }
-    agg.wallets.add(row.wallet);
-    agg.total_usd += row.usd_value;
     const existing = agg.outcomes.get(row.outcome) ?? { total: 0, price: row.current_price };
     existing.total += row.usd_value;
     existing.price = row.current_price;
@@ -329,6 +337,9 @@ function buildDashboardFromPositions(rows: DashboardRow[]) {
   const result = [];
 
   for (const agg of markets.values()) {
+    const key = `${agg.title}\0${agg.platform}`;
+    const w = walletsByKey.get(key);
+    if (w) agg.total_usd = w.total_usd;
     let yesCap = 0;
     let noCap = 0;
     let yesPrice = 0.5;
@@ -374,7 +385,7 @@ function buildDashboardFromPositions(rows: DashboardRow[]) {
 
     result.push({
       name: agg.title,
-      trader_count: agg.wallets.size,
+      trader_count: w?.trader_count ?? 0,
       total_usd: agg.total_usd,
       market_price: marketPrice,
       whale_sentiment: sentiment,
@@ -390,33 +401,35 @@ function buildDashboardFromPositions(rows: DashboardRow[]) {
 
 export function getDashboard(platform: Platform | 'all' = 'all') {
   const db = getDb();
-  const rows =
-    platform === 'all'
-      ? (db
-          .prepare(`
-            SELECT market_title,
-                   COALESCE(platform, 'polymarket') AS platform,
-                   outcome,
-                   wallet,
-                   usd_value,
-                   current_price
-            FROM positions
-          `)
-          .all() as DashboardRow[])
-      : (db
-          .prepare(`
-            SELECT market_title,
-                   COALESCE(platform, 'polymarket') AS platform,
-                   outcome,
-                   wallet,
-                   usd_value,
-                   current_price
-            FROM positions
-            WHERE COALESCE(platform, 'polymarket') = ?
-          `)
-          .all(platform) as DashboardRow[]);
+  const where = platform === 'all' ? '' : 'WHERE COALESCE(platform, \'polymarket\') = ?';
+  const params = platform === 'all' ? [] : [platform];
 
-  return buildDashboardFromPositions(rows);
+  const walletStats = db
+    .prepare(`
+      SELECT market_title,
+             COALESCE(platform, 'polymarket') AS platform,
+             COUNT(DISTINCT wallet) AS trader_count,
+             SUM(usd_value) AS total_usd
+      FROM positions
+      ${where}
+      GROUP BY market_title, COALESCE(platform, 'polymarket')
+    `)
+    .all(...params) as WalletStat[];
+
+  const outcomeRows = db
+    .prepare(`
+      SELECT market_title,
+             COALESCE(platform, 'polymarket') AS platform,
+             outcome,
+             SUM(usd_value) AS usd_value,
+             MAX(current_price) AS current_price
+      FROM positions
+      ${where}
+      GROUP BY market_title, COALESCE(platform, 'polymarket'), outcome
+    `)
+    .all(...params) as DashboardRow[];
+
+  return buildDashboardFromAggregates(walletStats, outcomeRows);
 }
 
 function liveWhereClause(platform: string, category: string) {
@@ -453,7 +466,7 @@ export function getLiveWhales(
 ) {
   const db = getDb();
   const { sql, params } = liveWhereClause(platform, category);
-  const fetchLimit = category === 'all' ? limit : Math.min(limit * 8, 2000);
+  const fetchLimit = category === 'all' ? limit : Math.min(limit * 3, 600);
   const rows = db
     .prepare(`
       SELECT market_title, event_title, category, outcome, side, price, size,

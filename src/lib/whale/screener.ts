@@ -39,7 +39,23 @@ type Cache = {
 };
 
 const CACHE_MS = 90_000;
+const POLY_MAX = 800;
+const KALSHI_MAX_PAGES = 3;
 let cache: Cache | null = null;
+let refreshPromise: Promise<Cache> | null = null;
+
+async function mapConcurrent<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = [];
+  for (let i = 0; i < items.length; i += concurrency) {
+    const batch = items.slice(i, i + concurrency);
+    results.push(...(await Promise.all(batch.map(fn))));
+  }
+  return results;
+}
 
 function parseNum(v: unknown): number {
   const n = typeof v === 'string' ? parseFloat(v) : Number(v);
@@ -59,58 +75,68 @@ async function fetchJson<T>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+async function fetchPolymarketPage(offset: number) {
+  const url = `https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=100&offset=${offset}&order=volume24hr&ascending=false`;
+  return fetchJson<
+    {
+      question?: string;
+      slug?: string;
+      outcomePrices?: string;
+      volume?: string;
+      volume24hr?: number;
+      endDate?: string;
+      active?: boolean;
+      closed?: boolean;
+      oneDayPriceChange?: number;
+      events?: { title?: string; slug?: string; series?: { title?: string }[] }[];
+      groupItemTitle?: string;
+    }[]
+  >(url);
+}
+
+function marketToRow(m: Awaited<ReturnType<typeof fetchPolymarketPage>>[number]): ScreenerRow {
+  let prob = 0.5;
+  try {
+    const prices = JSON.parse(m.outcomePrices ?? '["0.5"]') as string[];
+    prob = parseFloat(prices[0]) || 0.5;
+  } catch {
+    /* default */
+  }
+  const change = m.oneDayPriceChange ?? null;
+  const open = change != null ? prob - change : null;
+  const eventTitle =
+    m.groupItemTitle ??
+    m.events?.[0]?.series?.[0]?.title ??
+    (m.events?.[0]?.title !== m.question ? m.events?.[0]?.title : null) ??
+    null;
+  const vol = parseNum(m.volume);
+  const vol24 = m.volume24hr ?? null;
+  return {
+    platform: 'polymarket',
+    market_title: m.question ?? 'Unknown',
+    event_title: eventTitle,
+    probability: prob,
+    price_open: open,
+    price_high: change != null ? Math.max(prob, open ?? prob) : null,
+    price_low: change != null ? Math.min(prob, open ?? prob) : null,
+    change_1d: change,
+    volume: vol,
+    volume_24h: vol24,
+    days_to_resolution: daysUntil(m.endDate),
+    status: m.closed ? 'closed' : m.active ? 'active' : 'unknown',
+    external_url: polymarketExternalUrl(m),
+  };
+}
+
 async function fetchPolymarket(): Promise<ScreenerRow[]> {
+  const offsets: number[] = [];
+  for (let offset = 0; offset < POLY_MAX; offset += 100) offsets.push(offset);
+
+  const pages = await mapConcurrent(offsets, 5, fetchPolymarketPage);
   const rows: ScreenerRow[] = [];
-  for (let offset = 0; offset < 2000; offset += 100) {
-    const url = `https://gamma-api.polymarket.com/markets?active=true&closed=false&limit=100&offset=${offset}&order=volume24hr&ascending=false`;
-    const markets = await fetchJson<
-      {
-        question?: string;
-        slug?: string;
-        outcomePrices?: string;
-        volume?: string;
-        volume24hr?: number;
-        endDate?: string;
-        active?: boolean;
-        closed?: boolean;
-        oneDayPriceChange?: number;
-        events?: { title?: string; slug?: string; series?: { title?: string }[] }[];
-        groupItemTitle?: string;
-      }[]
-    >(url);
-    for (const m of markets) {
-      let prob = 0.5;
-      try {
-        const prices = JSON.parse(m.outcomePrices ?? '["0.5"]') as string[];
-        prob = parseFloat(prices[0]) || 0.5;
-      } catch {
-        /* default */
-      }
-      const change = m.oneDayPriceChange ?? null;
-      const open = change != null ? prob - change : null;
-      const eventTitle =
-        m.groupItemTitle ??
-        m.events?.[0]?.series?.[0]?.title ??
-        (m.events?.[0]?.title !== m.question ? m.events?.[0]?.title : null) ??
-        null;
-      const vol = parseNum(m.volume);
-      const vol24 = m.volume24hr ?? null;
-      rows.push({
-        platform: 'polymarket',
-        market_title: m.question ?? 'Unknown',
-        event_title: eventTitle,
-        probability: prob,
-        price_open: open,
-        price_high: change != null ? Math.max(prob, open ?? prob) : null,
-        price_low: change != null ? Math.min(prob, open ?? prob) : null,
-        change_1d: change,
-        volume: vol,
-        volume_24h: vol24,
-        days_to_resolution: daysUntil(m.endDate),
-        status: m.closed ? 'closed' : m.active ? 'active' : 'unknown',
-        external_url: polymarketExternalUrl(m),
-      });
-    }
+  for (const markets of pages) {
+    if (!markets.length) break;
+    for (const m of markets) rows.push(marketToRow(m));
     if (markets.length < 100) break;
   }
   return rows;
@@ -134,7 +160,7 @@ type KalshiMarket = {
 async function fetchKalshi(): Promise<ScreenerRow[]> {
   const all: KalshiMarket[] = [];
   let cursor: string | undefined;
-  for (let page = 0; page < 6; page++) {
+  for (let page = 0; page < KALSHI_MAX_PAGES; page++) {
     const params = new URLSearchParams({
       status: 'open',
       limit: '1000',
@@ -178,14 +204,29 @@ async function fetchKalshi(): Promise<ScreenerRow[]> {
   return rows.sort((a, b) => b.volume - a.volume);
 }
 
-async function loadCatalog(): Promise<Cache> {
-  if (cache && Date.now() - cache.at < CACHE_MS) return cache;
+async function refreshCatalog(): Promise<Cache> {
   const [polymarket, kalshi] = await Promise.all([
     fetchPolymarket().catch(() => [] as ScreenerRow[]),
     fetchKalshi().catch(() => [] as ScreenerRow[]),
   ]);
   cache = { at: Date.now(), polymarket, kalshi };
   return cache;
+}
+
+async function loadCatalog(): Promise<Cache> {
+  if (cache && Date.now() - cache.at < CACHE_MS) return cache;
+
+  // Stale-while-revalidate: serve cached catalog while refreshing in background.
+  if (cache) {
+    if (!refreshPromise) {
+      refreshPromise = refreshCatalog().finally(() => {
+        refreshPromise = null;
+      });
+    }
+    return cache;
+  }
+
+  return refreshCatalog();
 }
 
 export function filterScreener(rows: ScreenerRow[], f: ScreenerFilters): ScreenerRow[] {

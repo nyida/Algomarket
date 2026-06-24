@@ -6,8 +6,7 @@ import { QueryProvider } from '@/components/providers/QueryProvider';
 import { AppStoreProvider } from '@/context/AppStore';
 import { DataFeedBar } from '@/components/whale/DataFeedBar';
 import { SearchBar } from '@/components/whale/SearchBar';
-import { SpreadHistoryRecorder } from '@/components/whale/SpreadHistoryRecorder';
-import { PriceStreamProvider } from '@/hooks/useWebSocket';
+import { LiveDataProviders } from '@/components/whale/LiveDataProviders';
 import { SpreadModalProvider } from '@/context/SpreadModalContext';
 import { AppFooter } from '@/components/AppFooter';
 
@@ -53,8 +52,7 @@ export default function RootLayout({
               <Nav />
               <DataFeedBar />
               <SearchBar />
-              <SpreadHistoryRecorder />
-              <PriceStreamProvider />
+              <LiveDataProviders />
               <main className="flex-1 w-full relative z-[1]">{children}</main>
               <AppFooter />
             </SpreadModalProvider>

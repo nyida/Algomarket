@@ -3,6 +3,7 @@ import type Database from 'better-sqlite3';
 const MIGRATION_KEY = 'schema_migrated_v1';
 const MIGRATION_KEY_V2 = 'schema_migrated_v2';
 const MIGRATION_KEY_V3 = 'schema_migrated_v3';
+const MIGRATION_KEY_V4 = 'schema_migrated_v4';
 
 function metaGet(db: Database.Database, key: string): string | null {
   try {
@@ -84,5 +85,24 @@ export function ensureSchema(db: Database.Database) {
       }
     }
     metaSet(db, MIGRATION_KEY_V3, '1');
+  }
+
+  if (metaGet(db, MIGRATION_KEY_V4) !== '1') {
+    const indexes = [
+      'CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp DESC)',
+      'CREATE INDEX IF NOT EXISTS idx_trades_wallet ON trades(wallet)',
+      'CREATE INDEX IF NOT EXISTS idx_trades_platform_ts ON trades(platform, timestamp DESC)',
+      'CREATE INDEX IF NOT EXISTS idx_positions_market_platform ON positions(market_title, platform)',
+      'CREATE INDEX IF NOT EXISTS idx_positions_wallet ON positions(wallet)',
+      'CREATE INDEX IF NOT EXISTS idx_all_traders_profit ON all_traders(alltime_profit DESC)',
+    ];
+    for (const sql of indexes) {
+      try {
+        db.exec(sql);
+      } catch {
+        /* readonly or unsupported */
+      }
+    }
+    metaSet(db, MIGRATION_KEY_V4, '1');
   }
 }

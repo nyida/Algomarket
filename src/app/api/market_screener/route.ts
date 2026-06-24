@@ -1,9 +1,13 @@
 import { NextRequest } from 'next/server';
 import { getScreenerData } from '@/lib/whale/screener';
+import { cachedResponseAsync } from '@/lib/whale/responseCache';
 import { whaleError, whaleJson } from '@/lib/whale/api';
+
+const CACHE_MS = 60_000;
 
 export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
+  const cacheKey = sp.toString();
   try {
     const probBucket = sp.get('prob') ?? 'all';
     let prob_min = 0;
@@ -23,7 +27,8 @@ export async function GET(req: NextRequest) {
     else if (daysRaw === '9999') days_max = 9999;
     else if (daysRaw) days_max = parseInt(daysRaw, 10);
 
-    const data = await getScreenerData({
+    const data = await cachedResponseAsync(`screener:${cacheKey}`, CACHE_MS, () =>
+      getScreenerData({
       platform: (sp.get('platform') ?? 'all') as 'all' | 'polymarket' | 'kalshi',
       prob_min,
       prob_max,
@@ -33,7 +38,8 @@ export async function GET(req: NextRequest) {
       matched_only: sp.get('matched_only') === '1' || sp.get('matched_only') === 'true',
       limit: Math.min(parseInt(sp.get('limit') ?? '50', 10), 100),
       offset: parseInt(sp.get('offset') ?? '0', 10),
-    });
+      }),
+    );
 
     return whaleJson(data);
   } catch (e) {
