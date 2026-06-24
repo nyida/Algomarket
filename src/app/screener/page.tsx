@@ -332,7 +332,6 @@ function ScreenerContent() {
                         href={marketDetailPath(r.market_title, r.platform, {
                           price: r.probability,
                           volume: r.volume,
-                          url: r.external_url,
                           event: r.event_title,
                         })}
                         className="block hover:underline"

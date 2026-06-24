@@ -1,9 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ExternalLink, Search } from 'lucide-react';
 import { MARKET_CATEGORIES } from '@/lib/whale/categories';
 import { useUnifiedSearch } from '@/lib/whale/hooks';
+import { marketDetailPath } from '@/lib/whale/marketRoutes';
 import { fmtUsd, platformShort } from '@/lib/whale/utils';
 import { PlatformTag } from '@/components/whale/PlatformTag';
 
@@ -21,6 +24,7 @@ const VOLUME_OPTIONS = [
 ];
 
 export function UnifiedSearchBar() {
+  const router = useRouter();
   const [q, setQ] = useState('');
   const [debounced, setDebounced] = useState('');
   const [venue, setVenue] = useState('all');
@@ -106,13 +110,23 @@ export function UnifiedSearchBar() {
             <p className="text-xs p-3 opacity-50">No markets match.</p>
           )}
           {results.map((r) => (
-            <a
+            <button
               key={r.id}
-              href={r.external_url}
-              target="_blank"
-              rel="noreferrer"
-              className="unified-search-result"
+              type="button"
+              className="unified-search-result w-full text-left"
               role="option"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                setOpen(false);
+                setQ('');
+                router.push(
+                  marketDetailPath(r.title, r.venue, {
+                    price: r.probability,
+                    volume: r.volume_24h ?? r.volume,
+                    event: r.event_title,
+                  }),
+                );
+              }}
             >
               {r.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -131,7 +145,7 @@ export function UnifiedSearchBar() {
                 <div className="font-mono tabular-nums text-[10px] opacity-50">{fmtUsd(r.volume)}</div>
               </div>
               <ExternalLink className="w-3 h-3 opacity-40 shrink-0" />
-            </a>
+            </button>
           ))}
           {results.length > 0 && (
             <p className="text-[9px] opacity-40 px-3 py-2 border-t border-white/5">

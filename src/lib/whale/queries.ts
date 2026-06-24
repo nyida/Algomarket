@@ -55,14 +55,19 @@ function marketTitleVariants(marketTitle: string): string[] {
     variants.add(`${clean} [YES]`);
     variants.add(`${clean} [NO]`);
   }
-  return [...variants];
+  return [...variants].filter(Boolean);
+}
+
+function normalizeTitleKey(title: string): string {
+  return title.replace(/\s*\[(YES|NO)\]\s*$/i, '').trim().toLowerCase();
 }
 
 export function getMarketTraders(marketTitle: string, platform = 'polymarket') {
   const db = getDb();
   const titles = marketTitleVariants(marketTitle);
   const placeholders = titles.map(() => '?').join(', ');
-  const rows = db
+
+  let rows = db
     .prepare(`
       SELECT
         p.wallet,
@@ -80,6 +85,32 @@ export function getMarketTraders(marketTitle: string, platform = 'polymarket') {
       ORDER BY p.usd_value DESC
     `)
     .all(...titles, platform) as Record<string, unknown>[];
+
+  if (rows.length === 0) {
+    const clean = normalizeTitleKey(marketTitle);
+    if (clean.length >= 8) {
+      rows = db
+        .prepare(`
+          SELECT
+            p.wallet,
+            COALESCE(t.display_name, p.wallet) as display_name,
+            p.outcome,
+            p.shares,
+            p.avg_price,
+            p.current_price,
+            p.usd_value,
+            COALESCE(p.platform, 'polymarket') AS platform,
+            (p.shares * (p.current_price - p.avg_price)) as unrealized_pnl
+          FROM positions p
+          LEFT JOIN traders t ON p.wallet = t.wallet
+          WHERE COALESCE(p.platform, 'polymarket') = ?
+            AND LOWER(REPLACE(REPLACE(p.market_title, ' [YES]', ''), ' [NO]', '')) LIKE ?
+          ORDER BY p.usd_value DESC
+          LIMIT 50
+        `)
+        .all(platform, `%${clean}%`) as Record<string, unknown>[];
+    }
+  }
 
   return rows.map((row) => ({
     ...row,

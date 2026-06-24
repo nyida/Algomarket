@@ -24,7 +24,6 @@ export function ArbitrageRow({ spread }: { spread: ArbitrageSpread }) {
         <Link
           href={marketDetailPath(spread.poly_title, 'polymarket', {
             price: spread.poly_price,
-            url: spread.poly_url,
           })}
           className="block hover:underline"
         >

@@ -27,7 +27,6 @@ function fromBase64Url(b64: string): string {
   return new TextDecoder().decode(bytes);
 }
 
-/** Fully decode titles that may have been URL-encoded once or twice. */
 function safeDecodeTitle(raw: string): string {
   let s = raw.trim();
   for (let i = 0; i < 3; i++) {
@@ -43,7 +42,6 @@ function safeDecodeTitle(raw: string): string {
   return s.replace(/\+/g, ' ').trim();
 }
 
-/** URL-safe market id: `{venue}~{base64url(title)}` */
 export function encodeMarketId(title: string, platform: string): string {
   const venue = normalizeMarketVenue(platform);
   const clean = cleanMarketTitle(title);
@@ -81,45 +79,54 @@ export function decodeMarketId(
   return null;
 }
 
+export type MarketLinkExtras = {
+  price?: number;
+  volume?: number;
+  event?: string | null;
+};
+
+/** Build internal market detail URL. Query params are the source of truth. */
 export function marketDetailPath(
   title: string,
   platform: string,
-  extras?: {
-    price?: number;
-    volume?: number;
-    url?: string;
-    event?: string | null;
-  },
+  extras?: MarketLinkExtras,
 ): string {
-  const id = encodeMarketId(title, platform);
+  const clean = cleanMarketTitle(title);
+  const venue = normalizeMarketVenue(platform);
+  const id = encodeMarketId(clean, venue);
   const params = new URLSearchParams();
-  params.set('title', cleanMarketTitle(title));
-  params.set('platform', normalizeMarketVenue(platform));
+  params.set('title', clean);
+  params.set('platform', venue);
   if (extras?.price != null && Number.isFinite(extras.price)) {
     params.set('price', String(extras.price));
   }
   if (extras?.volume != null && Number.isFinite(extras.volume)) {
     params.set('volume', String(extras.volume));
   }
-  if (extras?.url) params.set('url', extras.url);
   if (extras?.event) params.set('event', extras.event);
   return `/market/${id}?${params.toString()}`;
 }
 
+/** Prefer explicit query params — they survive URL encoding issues. */
 export function resolveMarketIdentity(
   marketId: string,
   searchParams: { title?: string | null; platform?: string | null; venue?: string | null },
 ): { title: string; platform: MarketVenue } | null {
-  const fromId = decodeMarketId(marketId);
-  if (fromId) return fromId;
-
-  const title = searchParams.title?.trim();
-  if (title) {
+  const titleRaw = searchParams.title?.trim();
+  if (titleRaw) {
     return {
-      title: cleanMarketTitle(safeDecodeTitle(title)),
+      title: cleanMarketTitle(safeDecodeTitle(titleRaw)),
       platform: normalizeMarketVenue(searchParams.platform ?? searchParams.venue ?? 'polymarket'),
     };
   }
 
-  return null;
+  return decodeMarketId(marketId);
+}
+
+export function titlesMatch(a: string, b: string): boolean {
+  const ca = cleanMarketTitle(a).toLowerCase();
+  const cb = cleanMarketTitle(b).toLowerCase();
+  if (!ca || !cb) return false;
+  if (ca === cb) return true;
+  return ca.includes(cb) || cb.includes(ca);
 }

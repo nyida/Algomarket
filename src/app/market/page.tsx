@@ -22,7 +22,6 @@ function LegacyMarketRedirect() {
       marketDetailPath(title, venue, {
         price: priceRaw != null ? parseFloat(priceRaw) : undefined,
         volume: volumeRaw != null ? parseFloat(volumeRaw) : undefined,
-        url: sp.get('url') ?? undefined,
         event: sp.get('event'),
       }),
     );

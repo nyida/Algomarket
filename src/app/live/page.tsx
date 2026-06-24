@@ -1,8 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
 import { LiveRefreshNote } from '@/components/whale/LiveRefreshNote';
+import { MarketTitleLink } from '@/components/whale/MarketTitleLink';
 import {
   Shell,
   PageHeader,
@@ -15,6 +17,7 @@ import {
   StatPill,
 } from '@/components/whale/Shell';
 import { MARKET_CATEGORIES } from '@/lib/whale/categories';
+import { marketDetailPath } from '@/lib/whale/marketRoutes';
 import { fetchJson } from '@/lib/whale/fetch';
 import { useScrapeStatus } from '@/lib/whale/useScrapeStatus';
 import { usePoll } from '@/lib/whale/usePoll';
@@ -237,10 +240,12 @@ export default function LivePage() {
                       )}
                     </td>
                     <td className="col-market">
-                      <div className="market-title leading-snug">{t.market_title}</div>
-                      {t.event_title && t.event_title !== t.market_title && (
-                        <div className="text-[11px] mt-0.5 opacity-60 leading-snug">{t.event_title}</div>
-                      )}
+                      <MarketTitleLink
+                        title={t.market_title}
+                        platform={t.platform}
+                        extras={{ price: t.price }}
+                        subtitle={t.event_title}
+                      />
                     </td>
                     <td>
                       <span style={{ color: t.outcome === 'YES' ? 'var(--mint)' : 'var(--rose)' }}>
@@ -257,6 +262,13 @@ export default function LivePage() {
                       {fmtUsd(t.usd_value)}
                     </td>
                     <td className="text-right whitespace-nowrap">
+                      <Link
+                        href={marketDetailPath(t.market_title, t.platform, { price: t.price })}
+                        className="btn btn-ghost !p-1 text-[10px]"
+                        title="View market"
+                      >
+                        View
+                      </Link>
                       {t.external_url && (
                         <a
                           href={t.external_url}

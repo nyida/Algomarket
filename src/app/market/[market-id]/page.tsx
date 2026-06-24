@@ -62,11 +62,10 @@ function MarketDetailContent() {
 
   const title = decoded?.title ?? '';
   const venue = decoded?.platform ?? 'polymarket';
-  const event = sp.get('event') ?? screenerRow?.event_title ?? null;
-
   const priceParam = sp.get('price');
   const volumeParam = sp.get('volume');
-  const urlParam = sp.get('url');
+  const eventParam = sp.get('event');
+  const event = eventParam ?? screenerRow?.event_title ?? null;
 
   const price =
     priceParam != null && priceParam !== ''
@@ -77,7 +76,7 @@ function MarketDetailContent() {
       ? parseFloat(volumeParam)
       : (screenerRow?.volume ?? screenerRow?.volume_24h ?? 0);
   const externalUrl =
-    urlParam ?? screenerRow?.external_url ?? (venue === 'kalshi' ? 'https://kalshi.com' : 'https://polymarket.com');
+    screenerRow?.external_url ?? (venue === 'kalshi' ? 'https://kalshi.com' : 'https://polymarket.com');
 
   const { data: arbData } = useArbitrageMap();
   const spread = lookupSpread(arbData?.byPolyTitle ?? {}, title);
@@ -104,31 +103,33 @@ function MarketDetailContent() {
 
   useEffect(() => {
     if (!decoded) return;
-    if (priceParam && volumeParam && urlParam) return;
 
     const params = new URLSearchParams({
       platform: decoded.platform,
       search: decoded.title,
       prob: 'all',
       volume_min: '0',
-      limit: '5',
+      limit: '20',
       offset: '0',
     });
     fetch(`/api/market_screener?${params}`)
       .then((r) => r.json())
       .then((data) => {
         const rows = (data.rows ?? []) as ScreenerRow[];
+        const key = decoded.title.toLowerCase();
         const exact =
           rows.find((r) => r.market_title === decoded.title) ??
-          rows.find((r) =>
-            r.market_title.toLowerCase().includes(decoded.title.toLowerCase()),
-          ) ??
+          rows.find((r) => r.market_title.replace(/\s*\[(YES|NO)\]\s*$/i, '').trim() === decoded.title) ??
+          rows.find((r) => {
+            const rt = r.market_title.toLowerCase();
+            return rt === key || rt.includes(key) || key.includes(rt);
+          }) ??
           rows[0] ??
           null;
         setScreenerRow(exact);
       })
       .catch(() => setScreenerRow(null));
-  }, [decoded, priceParam, volumeParam, urlParam]);
+  }, [decoded]);
 
   if (!decoded) {
     return (

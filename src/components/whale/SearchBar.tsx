@@ -21,7 +21,6 @@ function marketDetailPathFromSearch(r: UnifiedMarket): string {
   return marketDetailPath(r.title, r.venue, {
     price: r.probability,
     volume: r.volume_24h ?? r.volume,
-    url: r.external_url,
     event: r.event_title,
   });
 }

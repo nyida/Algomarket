@@ -1,6 +1,8 @@
 node_modules
 .next
 /whale_data.db
+public/whale_data.db-wal
+public/whale_data.db-shm
 .env
 .env.local
 .env.*

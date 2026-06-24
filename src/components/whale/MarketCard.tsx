@@ -74,7 +74,6 @@ export const MarketRow = memo(function MarketRow({
 
   const detailHref = marketDetailPath(cleanName, market.platform, {
     price: market.market_price,
-    url: market.external_url,
   });
 
   function handleRowClick(e: React.MouseEvent) {
