@@ -2,7 +2,6 @@
 
 import { Fragment, memo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ExternalLink, Wallet } from 'lucide-react';
 import { DualBar, edgeFromPct } from '@/components/whale/SentimentCompare';
@@ -12,6 +11,7 @@ import { PaperTradeModal } from '@/components/whale/PaperTradeModal';
 import { SpreadSparkline } from '@/components/whale/SpreadSparkline';
 import { inferMarketCategory } from '@/lib/whale/categories';
 import { marketDetailPath } from '@/lib/whale/marketRoutes';
+import { platformExternalUrl } from '@/lib/whale/marketUrls';
 import type { ArbitrageSpread } from '@/services/types';
 import { fmtUsd, isPastMarket, shortWallet } from '@/lib/whale/utils';
 
@@ -60,7 +60,6 @@ export const MarketRow = memo(function MarketRow({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paperOpen, setPaperOpen] = useState(false);
-  const router = useRouter();
 
   const yesPct = parseYesPct(market.whale_sentiment);
   const marketPct = Math.round(market.market_price * 1000) / 10;
@@ -68,9 +67,10 @@ export const MarketRow = memo(function MarketRow({
   const category = inferMarketCategory(market.name);
   const past = isPastMarket(market.name);
   const cleanName = market.name.replace(/\s*\[(YES|NO)\]\s*$/i, '');
+  const venueHref = platformExternalUrl(market.platform, { title: cleanName });
   const href = past
-    ? `https://polymarket.com/search?q=${encodeURIComponent(market.name)}`
-    : market.external_url;
+    ? platformExternalUrl(market.platform, { title: market.name })
+    : venueHref;
 
   const detailHref = marketDetailPath(cleanName, market.platform, {
     price: market.market_price,
@@ -79,7 +79,7 @@ export const MarketRow = memo(function MarketRow({
   function handleRowClick(e: React.MouseEvent) {
     const target = e.target as HTMLElement;
     if (target.closest('a, button, [data-no-row-nav]')) return;
-    router.push(detailHref);
+    window.location.assign(detailHref);
   }
 
   async function toggle(e: React.MouseEvent) {

@@ -260,20 +260,18 @@ export default function LivePage() {
                       {fmtUsd(t.usd_value)}
                     </td>
                     <td className="text-right whitespace-nowrap">
-                      {t.external_url && (
-                        <a
-                          href={t.external_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="btn btn-ghost !p-1"
-                          title={`Open on ${platformShort(t.platform)}`}
-                        >
+                      <a
+                        href={t.external_url ?? '#'}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-ghost !p-1"
+                        title={`Open on ${platformShort(t.platform)}`}
+                      >
                           <span className="font-mono text-[10px] mr-0.5">
                             {t.platform === 'kalshi' ? 'K' : 'P'}
                           </span>
                           <ExternalLink className="w-3 h-3 inline" />
                         </a>
-                      )}
                     </td>
                   </tr>
                 ))}

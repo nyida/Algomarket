@@ -1,4 +1,5 @@
 import { inferMarketCategory } from '@/lib/whale/categories';
+import { kalshiExternalUrl } from '@/lib/whale/marketUrls';
 import type { UnifiedMarket } from './types';
 
 const KALSHI = process.env.KALSHI_API_URL ?? 'https://api.elections.kalshi.com/trade-api/v2';
@@ -33,7 +34,7 @@ function toMarket(m: KalshiMarket): UnifiedMarket {
     probability: parseFloat(m.last_price_dollars ?? '0') || 0,
     category: inferMarketCategory(`${title} ${eventTitle ?? ''}`),
     image: null,
-    external_url: m.ticker ? `https://kalshi.com/markets/${m.ticker}` : 'https://kalshi.com',
+    external_url: kalshiExternalUrl(m.ticker, m.title),
     status: m.status ?? 'active',
   };
 }

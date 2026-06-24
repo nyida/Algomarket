@@ -1,8 +1,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { ExternalLink, Search } from 'lucide-react';
 import { MARKET_CATEGORIES } from '@/lib/whale/categories';
 import { useUnifiedSearch } from '@/lib/whale/hooks';
@@ -24,7 +22,6 @@ const VOLUME_OPTIONS = [
 ];
 
 export function UnifiedSearchBar() {
-  const router = useRouter();
   const [q, setQ] = useState('');
   const [debounced, setDebounced] = useState('');
   const [venue, setVenue] = useState('all');
@@ -119,7 +116,7 @@ export function UnifiedSearchBar() {
               onClick={() => {
                 setOpen(false);
                 setQ('');
-                router.push(
+                window.location.assign(
                   marketDetailPath(r.title, r.venue, {
                     price: r.probability,
                     volume: r.volume_24h ?? r.volume,

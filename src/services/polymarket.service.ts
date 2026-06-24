@@ -1,4 +1,5 @@
 import { inferMarketCategory } from '@/lib/whale/categories';
+import { polymarketExternalUrl } from '@/lib/whale/marketUrls';
 import type { UnifiedMarket } from './types';
 
 const GAMMA = process.env.POLY_GAMMA_URL ?? 'https://gamma-api.polymarket.com';
@@ -44,7 +45,7 @@ function toUnified(m: GammaMarket, eventTitle?: string | null): UnifiedMarket {
     probability: parseProb(m.outcomePrices),
     category: inferMarketCategory(title),
     image: m.image ?? m.events?.[0]?.image ?? null,
-    external_url: m.slug ? `https://polymarket.com/event/${m.slug}` : 'https://polymarket.com',
+    external_url: polymarketExternalUrl(m),
     status: m.closed ? 'closed' : m.active ? 'active' : 'unknown',
   };
 }
@@ -77,7 +78,7 @@ export async function searchPolymarket(q: string, limit = 30): Promise<UnifiedMa
         probability: 0.5,
         category: inferMarketCategory(ev.title),
         image: ev.image ?? null,
-        external_url: ev.slug ? `https://polymarket.com/event/${ev.slug}` : 'https://polymarket.com',
+        external_url: polymarketExternalUrl({ slug: ev.slug, question: ev.title, events: [{ slug: ev.slug }] }),
         status: 'active',
       });
     }

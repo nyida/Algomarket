@@ -74,7 +74,7 @@ async function fetchPolymarket(): Promise<ScreenerRow[]> {
         active?: boolean;
         closed?: boolean;
         oneDayPriceChange?: number;
-        events?: { title?: string; series?: { title?: string }[] }[];
+        events?: { title?: string; slug?: string; series?: { title?: string }[] }[];
         groupItemTitle?: string;
       }[]
     >(url);
@@ -108,7 +108,7 @@ async function fetchPolymarket(): Promise<ScreenerRow[]> {
         volume_24h: vol24,
         days_to_resolution: daysUntil(m.endDate),
         status: m.closed ? 'closed' : m.active ? 'active' : 'unknown',
-        external_url: m.slug ? `https://polymarket.com/event/${m.slug}` : 'https://polymarket.com',
+        external_url: polymarketExternalUrl(m),
       });
     }
     if (markets.length < 100) break;
@@ -171,7 +171,7 @@ async function fetchKalshi(): Promise<ScreenerRow[]> {
       volume_24h: parseNum(m.volume_24h_fp) || null,
       days_to_resolution: daysUntil(m.close_time ?? m.latest_expiration_time),
       status: m.status ?? 'active',
-      external_url: m.ticker ? `https://kalshi.com/markets/${m.ticker}` : 'https://kalshi.com',
+      external_url: kalshiExternalUrl(m.ticker, m.title),
     });
   }
 
@@ -215,6 +215,7 @@ export function filterScreener(rows: ScreenerRow[], f: ScreenerFilters): Screene
 
 import { getArbitragePairs } from '@/services/arbitrage.service';
 import { titleSimilarity } from '@/services/arbitrage.utils';
+import { kalshiExternalUrl, polymarketExternalUrl } from '@/lib/whale/marketUrls';
 
 function filterMatchedRows(rows: ScreenerRow[], matchedTitles: { poly: string; kalshi: string }[]): ScreenerRow[] {
   if (!matchedTitles.length) return [];

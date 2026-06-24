@@ -8,6 +8,7 @@ import { MatchedMarketsToggle } from '@/components/whale/MatchedMarketsToggle';
 import { FilterToggle } from '@/components/whale/FilterToggle';
 import { ArbitrageRow } from '@/components/whale/ArbitrageRow';
 import { KalshiFlowWidget } from '@/components/whale/KalshiFlowWidget';
+import { MarketTitleLink } from '@/components/whale/MarketTitleLink';
 import {
   Shell,
   PageHeader,
@@ -26,7 +27,6 @@ import { fetchJson } from '@/lib/whale/fetch';
 import { useArbitrageMap } from '@/lib/whale/hooks';
 import { usePoll } from '@/lib/whale/usePoll';
 import { fmtUsd, platformShort } from '@/lib/whale/utils';
-import { marketDetailPath } from '@/lib/whale/marketRoutes';
 import { PlatformTag } from '@/components/whale/PlatformTag';
 import type { ArbitrageSpread } from '@/services/types';
 import type { ScreenerFacets, ScreenerRow } from '@/lib/whale/screener';
@@ -328,19 +328,16 @@ function ScreenerContent() {
                       <PlatformTag platform={r.platform} />
                     </td>
                     <td className="col-market">
-                      <Link
-                        href={marketDetailPath(r.market_title, r.platform, {
+                      <MarketTitleLink
+                        title={r.market_title}
+                        platform={r.platform}
+                        extras={{
                           price: r.probability,
                           volume: r.volume,
                           event: r.event_title,
-                        })}
-                        className="block hover:underline"
-                      >
-                        <div className="market-title leading-snug">{r.market_title}</div>
-                        {r.event_title && r.event_title !== r.market_title && (
-                          <div className="text-[11px] mt-0.5 opacity-60">{r.event_title}</div>
-                        )}
-                      </Link>
+                        }}
+                        subtitle={r.event_title}
+                      />
                     </td>
                     <td className="text-right font-mono tabular-nums">{fmtPct(r.probability)}</td>
                     <td className="text-right font-mono tabular-nums text-[10px] opacity-80">

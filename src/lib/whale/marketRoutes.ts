@@ -85,7 +85,7 @@ export type MarketLinkExtras = {
   event?: string | null;
 };
 
-/** Build internal market detail URL. Query params are the source of truth. */
+/** Build internal market detail URL — query params only (reliable client navigation). */
 export function marketDetailPath(
   title: string,
   platform: string,
@@ -93,7 +93,6 @@ export function marketDetailPath(
 ): string {
   const clean = cleanMarketTitle(title);
   const venue = normalizeMarketVenue(platform);
-  const id = encodeMarketId(clean, venue);
   const params = new URLSearchParams();
   params.set('title', clean);
   params.set('platform', venue);
@@ -104,7 +103,7 @@ export function marketDetailPath(
     params.set('volume', String(extras.volume));
   }
   if (extras?.event) params.set('event', extras.event);
-  return `/market/${id}?${params.toString()}`;
+  return `/market/view?${params.toString()}`;
 }
 
 /** Prefer explicit query params — they survive URL encoding issues. */

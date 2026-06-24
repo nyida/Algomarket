@@ -17,6 +17,7 @@ import {
 import { LiveRefreshNote } from '@/components/whale/LiveRefreshNote';
 import { useArbitrageMap } from '@/lib/whale/hooks';
 import { marketDetailPath } from '@/lib/whale/marketRoutes';
+import { platformExternalUrl } from '@/lib/whale/marketUrls';
 import { fmtRelativeTime } from '@/lib/whale/utils';
 
 const PAGE_SIZE = 40;
@@ -84,7 +85,7 @@ export default function ArbScannerPage() {
                   <tr key={spread.id}>
                     <td className="font-mono tabular-nums">{i + 1}</td>
                     <td className="col-market">
-                      <Link
+                      <a
                         href={marketDetailPath(spread.poly_title, 'polymarket', {
                           price: spread.poly_price,
                         })}
@@ -92,7 +93,7 @@ export default function ArbScannerPage() {
                       >
                         <div className="market-title leading-snug">{spread.poly_title}</div>
                         <div className="text-[10px] mt-0.5 opacity-50">↔ {spread.kalshi_title}</div>
-                      </Link>
+                      </a>
                     </td>
                     <td className="text-right font-mono tabular-nums">{(spread.poly_price * 100).toFixed(1)}%</td>
                     <td className="text-right font-mono tabular-nums">{(spread.kalshi_price * 100).toFixed(1)}%</td>
@@ -112,10 +113,20 @@ export default function ArbScannerPage() {
                       {fmtRelativeTime(Math.floor(spread.last_seen_at / 1000))}
                     </td>
                     <td className="text-right whitespace-nowrap">
-                      <a href={spread.poly_url} target="_blank" rel="noreferrer" className="btn btn-ghost text-[10px] !py-0.5">
+                      <a
+                        href={spread.poly_url || platformExternalUrl('polymarket', { title: spread.poly_title })}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-ghost text-[10px] !py-0.5"
+                      >
                         Poly
                       </a>
-                      <a href={spread.kalshi_url} target="_blank" rel="noreferrer" className="btn btn-ghost text-[10px] !py-0.5">
+                      <a
+                        href={spread.kalshi_url || platformExternalUrl('kalshi', { title: spread.kalshi_title })}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="btn btn-ghost text-[10px] !py-0.5"
+                      >
                         Kalshi
                       </a>
                     </td>

@@ -1,20 +1,12 @@
 import { getDb } from './db';
 import { inferMarketCategory, type MarketCategory } from './categories';
-import { makePolymarketSlug, type Platform } from './utils';
+import { platformExternalUrl, resolveExternalUrl } from './marketUrls';
+import type { Platform } from './utils';
 
 export type TraderRow = { wallet: string; display_name: string; alltime_profit: number; rank: number };
 
 function externalUrl(platform: string, title: string): string {
-  switch (platform) {
-    case 'kalshi':
-      return `https://kalshi.com/?search=${encodeURIComponent(title)}`;
-    case 'manifold':
-      return `https://manifold.markets/search?q=${encodeURIComponent(title)}`;
-    case 'predictit':
-      return `https://www.predictit.org/markets/search?query=${encodeURIComponent(title)}`;
-    default:
-      return `https://polymarket.com/event/${makePolymarketSlug(title)}`;
-  }
+  return platformExternalUrl(platform, { title });
 }
 
 export function getTraders(): TraderRow[] {
@@ -492,7 +484,11 @@ export function getLiveWhales(
 
   return rows
     .filter((r) => matchesCategory(r.market_title, r.event_title, r.category, category))
-    .slice(0, limit);
+    .slice(0, limit)
+    .map((r) => ({
+      ...r,
+      external_url: resolveExternalUrl(r.platform, r.market_title, r.external_url),
+    }));
 }
 
 export function getLiveWhaleCount(minSize: number, platform: string, category = 'all'): number {

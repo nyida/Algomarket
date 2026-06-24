@@ -1,4 +1,3 @@
-import Link from 'next/link';
 import { platformLabel, platformShort, tradeKindLabel } from '@/lib/whale/utils';
 
 export function PlatformTag({
@@ -49,14 +48,14 @@ export function ContractCell({
 
   if (href) {
     return (
-      <Link
+      <a
         href={href}
         className="contract-cell contract-cell-link hover:underline"
         onClick={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
         {inner}
-      </Link>
+      </a>
     );
   }
 

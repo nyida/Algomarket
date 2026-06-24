@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
 import { SectorNav } from '@/components/whale/Shell';
 import { useAppStore } from '@/context/AppStore';
@@ -17,20 +16,11 @@ const VENUE_OPTIONS = [
   { id: 'kalshi', label: 'Kalshi' },
 ];
 
-function marketDetailPathFromSearch(r: UnifiedMarket): string {
-  return marketDetailPath(r.title, r.venue, {
-    price: r.probability,
-    volume: r.volume_24h ?? r.volume,
-    event: r.event_title,
-  });
-}
-
 function keepInputFocus(e: React.MouseEvent) {
   e.preventDefault();
 }
 
 export function SearchBar() {
-  const router = useRouter();
   const { setSearchResults } = useAppStore();
   const inputRef = useRef<HTMLInputElement>(null);
   const [q, setQ] = useState('');
@@ -64,7 +54,13 @@ export function SearchBar() {
     setFocused(false);
     setQ('');
     setDebounced('');
-    router.push(marketDetailPathFromSearch(r));
+    window.location.assign(
+      marketDetailPath(r.title, r.venue, {
+        price: r.probability,
+        volume: r.volume_24h ?? r.volume,
+        event: r.event_title,
+      }),
+    );
   }
 
   return (

@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { marketDetailPath, type MarketLinkExtras } from '@/lib/whale/marketRoutes';
 
 export function MarketTitleLink({
@@ -18,11 +17,11 @@ export function MarketTitleLink({
 }) {
   const href = marketDetailPath(title, platform, extras);
   return (
-    <Link href={href} className={className} onClick={(e) => e.stopPropagation()}>
+    <a href={href} className={className} onClick={(e) => e.stopPropagation()}>
       <div className="market-title leading-snug">{title}</div>
       {subtitle && subtitle !== title && (
         <div className="text-[11px] mt-0.5 opacity-60 leading-snug">{subtitle}</div>
       )}
-    </Link>
+    </a>
   );
 }
