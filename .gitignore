@@ -12,6 +12,7 @@ uploads
 .DS_Store
 dist
 coverage
+*.tsbuildinfo
 
 # Evals / research
 .cache/

@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
 import { ExternalLink } from 'lucide-react';
 import { LiveRefreshNote } from '@/components/whale/LiveRefreshNote';
 import { MarketTitleLink } from '@/components/whale/MarketTitleLink';
@@ -17,7 +16,6 @@ import {
   StatPill,
 } from '@/components/whale/Shell';
 import { MARKET_CATEGORIES } from '@/lib/whale/categories';
-import { marketDetailPath } from '@/lib/whale/marketRoutes';
 import { fetchJson } from '@/lib/whale/fetch';
 import { useScrapeStatus } from '@/lib/whale/useScrapeStatus';
 import { usePoll } from '@/lib/whale/usePoll';
@@ -262,13 +260,6 @@ export default function LivePage() {
                       {fmtUsd(t.usd_value)}
                     </td>
                     <td className="text-right whitespace-nowrap">
-                      <Link
-                        href={marketDetailPath(t.market_title, t.platform, { price: t.price })}
-                        className="btn btn-ghost !p-1 text-[10px]"
-                        title="View market"
-                      >
-                        View
-                      </Link>
                       {t.external_url && (
                         <a
                           href={t.external_url}
