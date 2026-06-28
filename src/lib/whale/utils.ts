@@ -88,6 +88,8 @@ export function platformShort(platform: string): string {
       return 'PredictIt';
     case 'manifold':
       return 'Manifold';
+    case 'metaculus':
+      return 'Metaculus';
     default:
       return platformLabel(platform);
   }

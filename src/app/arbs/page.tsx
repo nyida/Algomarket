@@ -14,6 +14,7 @@ import {
   StatPill,
   Pager,
 } from '@/components/whale/Shell';
+import { DataSourcesBanner } from '@/components/whale/DataSourcesBanner';
 import { LiveRefreshNote } from '@/components/whale/LiveRefreshNote';
 import { useArbitrageMap } from '@/lib/whale/hooks';
 import { marketDetailPath } from '@/lib/whale/marketRoutes';
@@ -36,9 +37,11 @@ export default function ArbScannerPage() {
     <Shell>
       <PageHeader
         title="Arbitrage scanner"
-        description="Cross-venue gaps ≥ 2¢ between Polymarket & Kalshi — sorted by net profit after fees"
+        description="Cross-venue gaps ≥ 2¢ between Polymarket & Kalshi — sorted by net profit after fees. Enable POLYROUTER_API_KEY for unified 7-platform discovery."
         action={dataUpdatedAt ? <LiveRefreshNote lastFetch={dataUpdatedAt} label="Scanned" /> : null}
       />
+
+      <DataSourcesBanner />
 
       <StatStrip>
         <StatPill label="Opportunities" value={pairs.length.toLocaleString()} accent="mint" />

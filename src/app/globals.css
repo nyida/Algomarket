@@ -822,6 +822,101 @@
     @apply flex flex-wrap items-center gap-x-3 gap-y-1 text-xs py-1.5 px-2 rounded;
     background: var(--bg-inset);
   }
+
+  .crypto-strip {
+    @apply flex flex-wrap items-center gap-3 px-3 py-2 mb-3 rounded-lg text-xs;
+    background: var(--bg-inset);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .crypto-strip-label,
+  .crypto-strip-source {
+    @apply text-[10px] uppercase tracking-wider font-semibold;
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  .crypto-strip-items {
+    @apply flex flex-wrap gap-4 flex-1;
+  }
+
+  .crypto-strip-item {
+    @apply flex items-center gap-2 font-mono tabular-nums;
+  }
+
+  .crypto-symbol {
+    @apply font-semibold text-[11px];
+    color: var(--mint);
+  }
+
+  .data-sources-banner {
+    @apply flex flex-wrap items-center gap-2 px-3 py-2 mb-3 rounded-lg text-[11px];
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .data-sources-label {
+    color: rgba(255, 255, 255, 0.55);
+  }
+
+  .data-sources-pills {
+    @apply flex flex-wrap gap-1.5;
+  }
+
+  .data-source-pill {
+    @apply px-2 py-0.5 rounded-full text-[10px] font-medium;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .data-source-pill--ok {
+    color: var(--mint);
+  }
+
+  .data-source-pill--key {
+    color: rgba(255, 255, 255, 0.35);
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+  }
+
+  .market-changes-panel {
+    @apply mb-4 p-3 rounded-lg;
+    background: var(--bg-inset);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .panel-subtitle {
+    @apply text-sm font-semibold mb-2;
+  }
+
+  .panel-head {
+    @apply flex items-center justify-between mb-2;
+  }
+
+  .market-changes-list {
+    @apply space-y-1.5;
+  }
+
+  .market-changes-item {
+    @apply flex items-center gap-2 text-[11px] py-1 border-b border-white/5 last:border-0;
+  }
+
+  .change-type {
+    @apply text-[10px] uppercase tracking-wide shrink-0;
+    color: rgba(255, 255, 255, 0.45);
+    min-width: 4.5rem;
+  }
+
+  .change-title {
+    @apply flex-1 truncate;
+  }
+
+  .change-platform,
+  .change-price {
+    @apply font-mono tabular-nums shrink-0;
+    color: rgba(255, 255, 255, 0.65);
+  }
+
+  .change-link {
+    @apply shrink-0 opacity-60 hover:opacity-100;
+  }
 }
 
 @keyframes shimmer {

@@ -1,5 +1,5 @@
 export type ScreenerRow = {
-  platform: 'polymarket' | 'kalshi';
+  platform: 'polymarket' | 'kalshi' | 'manifold' | 'metaculus';
   market_title: string;
   event_title: string | null;
   probability: number;
@@ -12,16 +12,19 @@ export type ScreenerRow = {
   days_to_resolution: number | null;
   status: string;
   external_url: string;
+  source?: string;
 };
 
 export type ScreenerFacets = {
   total: number;
   polymarket: number;
   kalshi: number;
+  manifold: number;
+  metaculus: number;
 };
 
 export type ScreenerFilters = {
-  platform: 'all' | 'polymarket' | 'kalshi';
+  platform: 'all' | 'polymarket' | 'kalshi' | 'manifold' | 'metaculus';
   prob_min: number;
   prob_max: number;
   volume_min: number;
@@ -36,6 +39,8 @@ type Cache = {
   at: number;
   polymarket: ScreenerRow[];
   kalshi: ScreenerRow[];
+  manifold: ScreenerRow[];
+  predscope: ScreenerRow[];
 };
 
 const CACHE_MS = 90_000;
@@ -205,11 +210,70 @@ async function fetchKalshi(): Promise<ScreenerRow[]> {
 }
 
 async function refreshCatalog(): Promise<Cache> {
-  const [polymarket, kalshi] = await Promise.all([
+  const { fetchPredScopeMarkets } = await import('@/lib/api/clients/predscope');
+  const { fetchManifoldMarkets } = await import('@/lib/api/clients/manifold');
+  const { fetchMetaculusQuestions } = await import('@/lib/api/clients/metaculus');
+
+  const [polymarket, kalshi, predscopeRaw, manifoldRaw, metaculusRaw] = await Promise.all([
     fetchPolymarket().catch(() => [] as ScreenerRow[]),
     fetchKalshi().catch(() => [] as ScreenerRow[]),
+    fetchPredScopeMarkets().catch(() => []),
+    fetchManifoldMarkets(40).catch(() => []),
+    fetchMetaculusQuestions(20).catch(() => []),
   ]);
-  cache = { at: Date.now(), polymarket, kalshi };
+
+  const predscope: ScreenerRow[] = predscopeRaw.map((m) => ({
+    platform: 'polymarket' as const,
+    market_title: m.title,
+    event_title: m.event_title,
+    probability: m.probability,
+    price_open: m.change_1d != null ? m.probability - m.change_1d : null,
+    price_high: null,
+    price_low: null,
+    change_1d: m.change_1d ?? null,
+    volume: m.volume,
+    volume_24h: m.volume_24h,
+    days_to_resolution: null,
+    status: m.status,
+    external_url: m.external_url,
+    source: 'predscope',
+  }));
+
+  const manifold: ScreenerRow[] = manifoldRaw.map((m) => ({
+    platform: 'manifold' as const,
+    market_title: m.title,
+    event_title: m.event_title,
+    probability: m.probability,
+    price_open: null,
+    price_high: null,
+    price_low: null,
+    change_1d: m.change_1d ?? null,
+    volume: m.volume,
+    volume_24h: m.volume_24h,
+    days_to_resolution: null,
+    status: m.status,
+    external_url: m.external_url,
+    source: 'manifold',
+  }));
+
+  const metaculus: ScreenerRow[] = metaculusRaw.map((m) => ({
+    platform: 'metaculus' as const,
+    market_title: m.title,
+    event_title: m.event_title,
+    probability: m.probability,
+    price_open: null,
+    price_high: null,
+    price_low: null,
+    change_1d: null,
+    volume: m.volume,
+    volume_24h: null,
+    days_to_resolution: null,
+    status: m.status,
+    external_url: m.external_url,
+    source: 'metaculus',
+  }));
+
+  cache = { at: Date.now(), polymarket, kalshi, manifold, predscope: [...predscope, ...metaculus] };
   return cache;
 }
 
@@ -271,7 +335,12 @@ function filterMatchedRows(rows: ScreenerRow[], matchedTitles: { poly: string; k
 
 export async function getScreenerData(filters: ScreenerFilters) {
   const catalog = await loadCatalog();
-  let combined = [...catalog.polymarket, ...catalog.kalshi];
+  let combined = [
+    ...catalog.polymarket,
+    ...catalog.kalshi,
+    ...catalog.manifold,
+    ...catalog.predscope,
+  ];
 
   if (filters.matched_only) {
     const { pairs } = await getArbitragePairs(0);
@@ -284,8 +353,10 @@ export async function getScreenerData(filters: ScreenerFilters) {
 
   const facets: ScreenerFacets = {
     total: combined.length,
-    polymarket: catalog.polymarket.length,
+    polymarket: catalog.polymarket.length + catalog.predscope.filter((r) => r.source === 'predscope').length,
     kalshi: catalog.kalshi.length,
+    manifold: catalog.manifold.length,
+    metaculus: catalog.predscope.filter((r) => r.source === 'metaculus').length,
   };
 
   return {

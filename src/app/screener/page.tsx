@@ -35,9 +35,11 @@ const PAGE_SIZE = 50;
 const POLL_MS = 90_000;
 
 const PLATFORM_TABS = [
-  { id: 'all', label: 'Both' },
+  { id: 'all', label: 'All' },
   { id: 'polymarket', label: 'Polymarket' },
   { id: 'kalshi', label: 'Kalshi' },
+  { id: 'manifold', label: 'Manifold' },
+  { id: 'metaculus', label: 'Metaculus' },
 ];
 
 const PROB_BUCKETS = [
@@ -168,15 +170,22 @@ function ScreenerContent() {
   usePoll(() => load(true), POLL_MS);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const platformTabs = PLATFORM_TABS.map((t) => ({
-    ...t,
-    label:
+  const platformTabs = PLATFORM_TABS.map((t) => {
+    const count =
       t.id === 'all'
-        ? `Both${facets ? ` · ${(facets.total / 1000).toFixed(1)}K` : ''}`
+        ? facets?.total
         : t.id === 'polymarket'
-          ? `Polymarket${facets ? ` · ${(facets.polymarket / 1000).toFixed(1)}K` : ''}`
-          : `Kalshi${facets ? ` · ${(facets.kalshi / 1000).toFixed(1)}K` : ''}`,
-  }));
+          ? facets?.polymarket
+          : t.id === 'kalshi'
+            ? facets?.kalshi
+            : t.id === 'manifold'
+              ? facets?.manifold
+              : t.id === 'metaculus'
+                ? facets?.metaculus
+                : undefined;
+    const suffix = count != null ? ` · ${count >= 1000 ? `${(count / 1000).toFixed(1)}K` : count}` : '';
+    return { ...t, label: `${t.label}${suffix}` };
+  });
 
   const viewKey = `${platform}-${prob}-${volumeMin}-${days}-${search}-${page}-${arbsOnly}-${matchedOnly}`;
 
@@ -187,7 +196,7 @@ function ScreenerContent() {
     <Shell>
       <PageHeader
         title="Market screener"
-        description="Filter Kalshi & Polymarket markets by probability, volume, and resolution date"
+        description="Filter prediction markets by probability, volume, and resolution date — Polymarket, Kalshi, Manifold, Metaculus"
         action={lastFetch ? <LiveRefreshNote lastFetch={lastFetch} label="Catalog" /> : null}
       />
 
@@ -196,6 +205,8 @@ function ScreenerContent() {
           <StatPill label="Markets loaded" value={facets.total.toLocaleString()} accent="mint" />
           <StatPill label="Polymarket" value={facets.polymarket.toLocaleString()} />
           <StatPill label="Kalshi" value={facets.kalshi.toLocaleString()} />
+          <StatPill label="Manifold" value={facets.manifold.toLocaleString()} />
+          <StatPill label="Metaculus" value={facets.metaculus.toLocaleString()} />
           <StatPill label="Matching" value={total.toLocaleString()} />
         </StatStrip>
       )}

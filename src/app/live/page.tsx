@@ -26,6 +26,8 @@ import {
   platformShort,
 } from '@/lib/whale/utils';
 import { PlatformTag, TradeKindTag } from '@/components/whale/PlatformTag';
+import { MarketChangesPanel } from '@/components/whale/MarketChangesPanel';
+import { DataSourcesBanner } from '@/components/whale/DataSourcesBanner';
 
 type LiveTrade = {
   market_title: string;
@@ -137,6 +139,9 @@ export default function LivePage() {
         />
         <StatPill label="Showing" value={`${trades.length.toLocaleString()} latest`} />
       </StatStrip>
+
+      <DataSourcesBanner />
+      <MarketChangesPanel since="1h" limit={12} />
 
       <SectorNav
         value={platform}

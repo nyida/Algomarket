@@ -21,6 +21,8 @@ import {
 import { inferMarketCategory, MARKET_CATEGORIES, type MarketCategory } from '@/lib/whale/categories';
 import { useScrapeStatus } from '@/lib/whale/useScrapeStatus';
 import { WhaleTicker } from '@/components/whale/WhaleTicker';
+import { CryptoOverviewStrip } from '@/components/whale/CryptoOverviewStrip';
+import { DataSourcesBanner } from '@/components/whale/DataSourcesBanner';
 import { fetchJson } from '@/lib/whale/fetch';
 import { useArbitrageMap } from '@/lib/whale/hooks';
 import { lookupSpread } from '@/services/arbitrage.utils';
@@ -150,6 +152,9 @@ export default function DashboardPage() {
           <StatPill label="Leaderboard" value={status.all_trader_count.toLocaleString()} />
         </StatStrip>
       )}
+
+      <DataSourcesBanner />
+      <CryptoOverviewStrip />
 
       {showVenueNav && <SectorNav value={platform} onChange={setPlatform} options={platformTabs} />}
       <SectorNav value={category} onChange={setCategory} options={SECTOR_TABS} />
